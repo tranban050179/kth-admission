@@ -6,7 +6,8 @@ import {
   Plus, Trash2, LogIn, LogOut, FileText, LayoutDashboard, 
   ShieldCheck, ArrowUp, ArrowDown, Search, X, Bell, Clock, 
   AlertTriangle, Check, UploadCloud, CreditCard, Send, MapPin, 
-  Globe, Phone, FileDigit, Download, ChevronRight, Calendar, Eye, Menu
+  Globe, Phone, FileDigit, Download, ChevronRight, Calendar, Eye, 
+  Menu, Lock, User, KeyRound, CheckSquare, FileCheck
 } from 'lucide-react';
 
 // ==========================================
@@ -41,9 +42,8 @@ const DEADLINE_START = new Date('2026-07-02T00:00:00');
 const DEADLINE_END = new Date('2026-08-21T17:00:00');
 
 const INITIAL_CANDIDATES = [
-  { id: 'C001', name: 'Nguyễn Văn A', cccd: '001099001111', region: 'KV1', target: 'UT1', isPaid: false, isConfirmed: false },
-  { id: 'C002', name: 'Trần Thị B', cccd: '001099002222', region: 'KV2', target: 'NONE', isPaid: true, isConfirmed: false },
-  { id: 'C003', name: 'Lê Văn C', cccd: '001099003333', region: 'KV3', target: 'NONE', isPaid: true, isConfirmed: false },
+  { id: 'C001', name: 'Nguyễn Văn A', cccd: '001099001111', password: 'password', region: 'KV1', target: 'UT1', isPaid: false, isConfirmed: false, phone: '0901234567', email: 'nguyenvana@gmail.com' },
+  { id: 'C002', name: 'Trần Thị B', cccd: '001099002222', password: 'password', region: 'KV2', target: 'NONE', isPaid: true, isConfirmed: false, phone: '0987654321', email: 'tranthib@gmail.com' },
 ];
 
 const INITIAL_WISHES = [
@@ -57,7 +57,7 @@ const INITIAL_WISHES = [
 // ==========================================
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'login', 'portal', 'admin'
   const [wishes, setWishes] = useState(INITIAL_WISHES);
   const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -72,12 +72,22 @@ export default function App() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
-  const login = (role) => {
-    if (role === 'CANDIDATE') setCurrentUser(candidates[0]); // Đăng nhập mẫu Thí sinh A
-    if (role === 'ADMIN') setCurrentUser({ id: 'A001', name: 'Ban Tuyển sinh', role: 'ADMIN' });
-    setActiveTab(role === 'ADMIN' ? 'admin' : 'portal');
-    setMobileMenuOpen(false);
-    addToast(`Đăng nhập hệ thống thành công!`, 'success');
+  const handleLogin = (cccd, password, role) => {
+    if (role === 'ADMIN' && cccd === 'admin' && password === 'admin') {
+      setCurrentUser({ id: 'A001', name: 'Ban Tuyển sinh', role: 'ADMIN' });
+      setActiveTab('admin');
+      addToast('Đăng nhập Quản trị thành công!', 'success');
+      return;
+    }
+
+    const user = candidates.find(c => c.cccd === cccd && c.password === password);
+    if (user) {
+      setCurrentUser(user);
+      setActiveTab('portal');
+      addToast('Đăng nhập thành công!', 'success');
+    } else {
+      addToast('CCCD hoặc mật khẩu không chính xác!', 'error');
+    }
   };
 
   const logout = () => {
@@ -88,6 +98,51 @@ export default function App() {
 
   const isSystemOpen = CURRENT_DATE >= DEADLINE_START && CURRENT_DATE <= DEADLINE_END;
 
+  // Nếu đang ở trang portal hoặc admin, render layout riêng (App-like Layout)
+  if (activeTab === 'portal' || activeTab === 'admin') {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] font-sans text-slate-800 flex flex-col">
+        {/* Toasts */}
+        <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+          {toasts.map(toast => (
+            <div key={toast.id} className={`flex items-center p-4 rounded-lg shadow-lg border text-sm font-bold transition-all pointer-events-auto
+              ${toast.type === 'success' ? 'bg-white border-l-4 border-l-green-500 text-slate-700' : 
+                toast.type === 'error' ? 'bg-white border-l-4 border-l-red-500 text-slate-700' : 
+                'bg-white border-l-4 border-l-blue-500 text-slate-700'}`}>
+              {toast.type === 'success' && <CheckCircle className="w-5 h-5 mr-3 text-green-500" />}
+              {toast.type === 'error' && <AlertTriangle className="w-5 h-5 mr-3 text-red-500" />}
+              {toast.type === 'info' && <Bell className="w-5 h-5 mr-3 text-blue-500" />}
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        {/* Dashboard Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-50 h-16 flex items-center justify-between px-4 lg:px-8 shadow-sm">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('home')}>
+             <ShieldCheck className="h-8 w-8 text-[#003366]" />
+             <span className="font-black text-lg text-[#003366] uppercase hidden sm:block">KTH Admissions</span>
+          </div>
+          <div className="flex items-center gap-4">
+             {isSystemOpen && <div className="hidden md:flex items-center text-xs font-bold bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full"><Clock className="w-4 h-4 mr-1"/> Đang mở đăng ký</div>}
+             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-full py-1 pr-4 pl-1">
+               <div className="w-8 h-8 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold">{currentUser?.name.charAt(0)}</div>
+               <div className="flex flex-col text-xs">
+                 <span className="font-bold text-[#003366] leading-none">{currentUser?.name}</span>
+                 <span className="text-slate-500 mt-0.5">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : `TS: ${currentUser?.cccd}`}</span>
+               </div>
+             </div>
+             <button onClick={logout} className="text-slate-400 hover:text-red-500 transition p-2" title="Đăng xuất"><LogOut className="w-5 h-5"/></button>
+          </div>
+        </header>
+
+        {activeTab === 'portal' && <CandidatePortal user={currentUser} setUser={(u) => {setCurrentUser(u); setCandidates(candidates.map(c => c.id === u.id ? u : c));}} wishes={wishes} setWishes={setWishes} addToast={addToast} addAuditLog={(action, detail) => setAuditLogs(prev => [{id: Date.now(), time: new Date().toISOString(), actor: currentUser.id, action, detail}, ...prev])} isSystemOpen={isSystemOpen} />}
+        {activeTab === 'admin' && <AdminDashboard wishes={wishes} setWishes={setWishes} candidates={candidates} auditLogs={auditLogs} setAuditLogs={setAuditLogs} addToast={addToast} adminUser={currentUser} />}
+      </div>
+    );
+  }
+
+  // ==================== LAYOUT TRANG CHỦ & ĐĂNG NHẬP (PUBLIC) ====================
   return (
     <div className="min-h-screen bg-[#f1f5f9] font-sans text-slate-800 flex flex-col">
       {/* Hiển thị Thông báo */}
@@ -106,7 +161,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* THANH TRÊN CÙNG (PTIT STYLE) */}
+      {/* THANH TRÊN CÙNG */}
       <div className="bg-[#cc0000] text-white text-xs py-2 hidden md:block border-b border-red-800">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <div className="flex gap-6 font-medium">
@@ -133,37 +188,12 @@ export default function App() {
             </div>
           </div>
           
-          {/* Menu Máy tính */}
           <div className="hidden md:flex items-center space-x-3">
-            {!currentUser ? (
-              <>
-                <button onClick={() => login('CANDIDATE')} className="text-sm font-bold text-[#003366] border border-[#003366] hover:bg-[#003366] hover:text-white px-5 py-2.5 rounded transition-colors flex items-center">
-                  <LogIn className="w-4 h-4 mr-2" /> Dành cho Thí sinh
-                </button>
-                <button onClick={() => login('ADMIN')} className="bg-[#cc0000] hover:bg-red-800 text-white text-sm font-bold px-5 py-2.5 rounded transition-colors shadow-sm">
-                  Quản trị viên
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center bg-slate-50 rounded p-1.5 pr-4 border border-slate-200">
-                <div className="bg-[#003366] text-white w-8 h-8 rounded flex items-center justify-center font-bold mr-3">
-                  {currentUser.name.charAt(0)}
-                </div>
-                <div className="text-sm mr-6">
-                  <div className="font-bold text-[#003366]">{currentUser.name}</div>
-                  <div className="text-xs text-slate-500">{currentUser.role === 'ADMIN' ? 'Hệ thống Quản trị' : `TS: ${currentUser.cccd}`}</div>
-                </div>
-                <button onClick={() => setActiveTab(currentUser.role === 'ADMIN' ? 'admin' : 'portal')} className="text-slate-400 hover:text-[#003366] p-2 transition-colors border-r border-slate-200 mr-1" title="Bảng điều khiển">
-                  <LayoutDashboard className="w-5 h-5" />
-                </button>
-                <button onClick={logout} className="text-slate-400 hover:text-red-600 p-2 transition-colors" title="Đăng xuất">
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            )}
+            <button onClick={() => setActiveTab('login')} className="text-sm font-bold text-[#003366] border border-[#003366] hover:bg-[#003366] hover:text-white px-5 py-2.5 rounded transition-colors flex items-center">
+              <LogIn className="w-4 h-4 mr-2" /> Đăng nhập / Đăng ký
+            </button>
           </div>
 
-          {/* Nút Menu Mobile */}
           <div className="md:hidden">
              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[#003366] p-2">
                <Menu className="w-7 h-7" />
@@ -171,63 +201,17 @@ export default function App() {
           </div>
         </div>
 
-        {/* Menu thả xuống Mobile */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-slate-100 p-4 flex flex-col gap-3 shadow-inner">
-            {!currentUser ? (
-              <>
-                <button onClick={() => login('CANDIDATE')} className="w-full text-center text-sm font-bold text-[#003366] border border-[#003366] py-3 rounded">Đăng nhập Thí sinh</button>
-                <button onClick={() => login('ADMIN')} className="w-full text-center text-sm font-bold text-white bg-[#cc0000] py-3 rounded">Đăng nhập Quản trị</button>
-              </>
-            ) : (
-              <>
-                <div className="text-center font-bold text-[#003366] pb-2 border-b">Xin chào, {currentUser.name}</div>
-                <button onClick={() => setActiveTab(currentUser.role === 'ADMIN' ? 'admin' : 'portal')} className="w-full text-center text-sm font-bold text-slate-700 bg-slate-100 py-3 rounded">Bảng điều khiển</button>
-                <button onClick={logout} className="w-full text-center text-sm font-bold text-red-600 bg-red-50 py-3 rounded">Đăng xuất</button>
-              </>
-            )}
+            <button onClick={() => {setActiveTab('login'); setMobileMenuOpen(false);}} className="w-full text-center text-sm font-bold text-[#003366] border border-[#003366] py-3 rounded">Đăng nhập Thí sinh</button>
           </div>
         )}
       </header>
 
-      {/* THANH TRẠNG THÁI HỆ THỐNG */}
-      {isSystemOpen && (
-        <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-[#003366] py-2 px-4 text-center text-sm font-bold shadow-sm">
-          <span className="flex items-center justify-center">
-            <Clock className="w-4 h-4 mr-2 animate-pulse" /> 
-            CỔNG ĐĂNG KÝ ĐANG MỞ. Hạn chót: 17h00 ngày 21/08/2026.
-          </span>
-        </div>
-      )}
-
-      {/* NỘI DUNG CHÍNH */}
+      {/* NỘI DUNG CHÍNH (PUBLIC ROUTING) */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'home' && <PublicHome onApplyClick={() => login('CANDIDATE')} />}
-        {activeTab === 'portal' && currentUser && currentUser.role !== 'ADMIN' && (
-          <CandidatePortal 
-            user={currentUser} 
-            setUser={(u) => {
-              setCurrentUser(u);
-              setCandidates(candidates.map(c => c.id === u.id ? u : c));
-            }}
-            wishes={wishes} 
-            setWishes={setWishes} 
-            addToast={addToast} 
-            addAuditLog={(action, detail) => setAuditLogs(prev => [{id: Date.now(), time: new Date().toISOString(), actor: currentUser.id, action, detail}, ...prev])}
-            isSystemOpen={isSystemOpen}
-          />
-        )}
-        {activeTab === 'admin' && currentUser?.role === 'ADMIN' && (
-          <AdminDashboard 
-            wishes={wishes} 
-            setWishes={setWishes} 
-            candidates={candidates}
-            auditLogs={auditLogs}
-            setAuditLogs={setAuditLogs}
-            addToast={addToast}
-            adminUser={currentUser}
-          />
-        )}
+        {activeTab === 'home' && <PublicHome onApplyClick={() => setActiveTab('login')} />}
+        {activeTab === 'login' && <LoginPage onLogin={handleLogin} onCancel={() => setActiveTab('home')} />}
       </main>
 
       {/* CHÂN TRANG (FOOTER) */}
@@ -245,51 +229,122 @@ export default function App() {
             <h4 className="font-bold text-white text-base mb-4 uppercase border-b border-slate-700 pb-2">Liên hệ Tuyển sinh</h4>
             <p className="mb-3 flex items-center"><Phone className="w-4 h-4 mr-2 text-slate-400"/> Điện thoại: <strong className="text-white ml-1">{ACADEMY_INFO.hotline}</strong></p>
             <p className="mb-3 flex items-center"><Globe className="w-4 h-4 mr-2 text-slate-400"/> Email: tuyensinh@hvktcnan.bocongan.gov.vn</p>
-            <p className="mb-3 flex items-center"><Globe className="w-4 h-4 mr-2 text-slate-400"/> Website: <a href="#" className="hover:text-yellow-400">{ACADEMY_INFO.website}</a></p>
           </div>
           <div>
             <h4 className="font-bold text-white text-base mb-4 uppercase border-b border-slate-700 pb-2">Liên kết nhanh</h4>
             <ul className="space-y-2">
               <li><a href="#" className="hover:text-yellow-400 transition flex items-center"><ChevronRight className="w-4 h-4 mr-1 text-[#cc0000]"/> Đề án tuyển sinh 2026</a></li>
               <li><a href="#" className="hover:text-yellow-400 transition flex items-center"><ChevronRight className="w-4 h-4 mr-1 text-[#cc0000]"/> Cổng thông tin BGDĐT</a></li>
-              <li><a href="#" className="hover:text-yellow-400 transition flex items-center"><ChevronRight className="w-4 h-4 mr-1 text-[#cc0000]"/> Hướng dẫn nộp lệ phí</a></li>
             </ul>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
 
-      {/* CHATBOT */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {showAI && (
-          <div className="bg-white rounded-lg shadow-2xl w-80 md:w-96 h-[400px] mb-4 flex flex-col border border-slate-200 overflow-hidden">
-            <div className="bg-[#003366] text-white p-3 flex justify-between items-center">
-              <div className="flex items-center">
-                <MessageCircle className="w-5 h-5 text-yellow-400 mr-2" />
-                <span className="font-bold text-sm">Hỗ trợ trực tuyến KTH</span>
-              </div>
-              <button onClick={() => setShowAI(false)} className="text-white/70 hover:text-white"><X className="w-5 h-5"/></button>
-            </div>
-            <div className="flex-1 p-4 bg-slate-50 overflow-y-auto text-sm">
-              <div className="bg-white text-slate-700 p-3 rounded-lg shadow-sm max-w-[85%] border border-slate-200">
-                Chào bạn! Mình là trợ lý AI. Mình có thể giải đáp các thông tin trong Đề án tuyển sinh 2026. Bạn cần hỏi gì?
-              </div>
-            </div>
-            <div className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
-              <input type="text" placeholder="Nhập tin nhắn..." className="flex-1 p-2 bg-slate-100 rounded outline-none text-sm focus:ring-1 focus:ring-[#003366]" />
-              <button className="bg-[#cc0000] text-white p-2 rounded hover:bg-red-700"><Send className="w-4 h-4"/></button>
+// ==========================================
+// TRANG ĐĂNG NHẬP (LOGIN & REGISTER)
+// ==========================================
+function LoginPage({ onLogin, onCancel }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [cccd, setCccd] = useState('001099001111');
+  const [password, setPassword] = useState('password');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onLogin(cccd, password, 'CANDIDATE'); // Để demo, mặc định role CANDIDATE, admin dùng id 'admin' pw 'admin'
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col md:flex-row animate-fade-in">
+      {/* Panel hướng dẫn */}
+      <div className="md:w-5/12 bg-[#003366] text-white p-8 flex flex-col justify-between">
+        <div>
+          <ShieldCheck className="w-12 h-12 text-[#cc0000] mb-6" />
+          <h2 className="text-2xl font-black uppercase mb-4 leading-tight">Cổng Xét tuyển<br/>Trực tuyến 2026</h2>
+          <p className="text-blue-100 text-sm mb-6 leading-relaxed">
+            Chào mừng bạn đến với hệ thống tuyển sinh của KTH. Vui lòng đăng nhập bằng Số CCCD đã đăng ký để quản lý hồ sơ và nguyện vọng.
+          </p>
+          <ul className="space-y-3 text-sm text-blue-200">
+            <li className="flex items-start"><CheckCircle className="w-4 h-4 mr-2 mt-0.5 text-yellow-400 flex-shrink-0"/> Đăng ký tối đa 15 nguyện vọng.</li>
+            <li className="flex items-start"><CheckCircle className="w-4 h-4 mr-2 mt-0.5 text-yellow-400 flex-shrink-0"/> Nộp lệ phí trực tuyến an toàn.</li>
+            <li className="flex items-start"><CheckCircle className="w-4 h-4 mr-2 mt-0.5 text-yellow-400 flex-shrink-0"/> Xem kết quả và xác nhận nhập học.</li>
+          </ul>
+        </div>
+        <div className="mt-8 text-xs text-blue-300 border-t border-blue-800 pt-4">
+          Gặp khó khăn? Gọi ngay Hotline: <strong className="text-white">{ACADEMY_INFO.hotline}</strong>
+        </div>
+      </div>
+
+      {/* Panel Form */}
+      <div className="md:w-7/12 p-8 md:p-12 relative">
+        <button onClick={onCancel} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
+        
+        <h3 className="text-2xl font-bold text-[#003366] mb-2">{isLogin ? 'Đăng nhập Hệ thống' : 'Đăng ký Tài khoản'}</h3>
+        <p className="text-sm text-slate-500 mb-8">{isLogin ? 'Nhập CCCD và mật khẩu để tiếp tục.' : 'Tạo tài khoản mới bằng số Thẻ Căn cước công dân của bạn.'}</p>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Số Thẻ CCCD</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><User className="h-5 w-5 text-slate-400" /></div>
+              <input type="text" value={cccd} onChange={e => setCccd(e.target.value)} required placeholder="Nhập 12 số CCCD" className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition" />
             </div>
           </div>
-        )}
-        <button onClick={() => setShowAI(!showAI)} className="bg-[#003366] hover:bg-blue-900 text-white p-4 rounded-full shadow-xl transition-transform hover:scale-105">
-          <MessageCircle className="w-6 h-6" />
-        </button>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Mật khẩu</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Lock className="h-5 w-5 text-slate-400" /></div>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Nhập mật khẩu" className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition" />
+            </div>
+          </div>
+
+          {isLogin && (
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center text-slate-600 cursor-pointer">
+                <input type="checkbox" className="mr-2 rounded border-slate-300 text-[#003366] focus:ring-[#003366]" /> Ghi nhớ đăng nhập
+              </label>
+              <a href="#" className="font-bold text-[#cc0000] hover:underline">Quên mật khẩu?</a>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Xác nhận mật khẩu</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><KeyRound className="h-5 w-5 text-slate-400" /></div>
+                <input type="password" placeholder="Nhập lại mật khẩu" className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition" />
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="w-full bg-[#cc0000] text-white font-bold py-3.5 rounded-lg shadow-md hover:bg-red-700 transition uppercase tracking-wide mt-4">
+            {isLogin ? 'Đăng nhập' : 'Đăng ký ngay'}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-sm text-slate-600 border-t border-slate-100 pt-6">
+          {isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? "}
+          <button onClick={() => setIsLogin(!isLogin)} className="font-bold text-[#003366] hover:underline">
+            {isLogin ? "Đăng ký tại đây" : "Đăng nhập ngay"}
+          </button>
+        </div>
+        
+        {/* Helper Note */}
+        <div className="mt-6 bg-yellow-50 p-3 rounded text-xs text-yellow-800 border border-yellow-200">
+          <strong>Demo Tài khoản:</strong><br/>
+          Thí sinh: CCCD: <code>001099001111</code> | Pass: <code>password</code><br/>
+          Admin: ID: <code>admin</code> | Pass: <code>admin</code>
+        </div>
       </div>
     </div>
   );
 }
 
 // ==========================================
-// 3. TRANG CHỦ (GIAO DIỆN BÁO CHÍ PTIT)
+// TRANG CHỦ (GIAO DIỆN BÁO CHÍ PTIT)
 // ==========================================
 function PublicHome({ onApplyClick }) {
   const [activeMethodTab, setActiveMethodTab] = useState(METHODS[0].id);
@@ -404,9 +459,6 @@ function PublicHome({ onApplyClick }) {
               <button onClick={onApplyClick} className="bg-[#cc0000] hover:bg-red-700 text-white font-bold py-4 px-8 rounded shadow-md transition flex justify-center items-center gap-2 group uppercase">
                 <FileDigit className="w-5 h-5 group-hover:scale-110 transition-transform" /> Đăng ký xét tuyển ngay
               </button>
-              <button className="bg-slate-100 border border-slate-300 text-[#003366] font-bold py-4 px-8 rounded hover:bg-slate-200 transition flex justify-center items-center gap-2">
-                <Download className="w-5 h-5" /> Tải Đề án tuyển sinh
-              </button>
             </div>
           </div>
         </article>
@@ -457,41 +509,18 @@ function PublicHome({ onApplyClick }) {
                 <div className="text-[11px] text-slate-500">Định dạng Word (.docx)</div>
               </div>
             </a>
-            <a href="#" className="flex items-start p-2 hover:bg-slate-50 transition group">
-              <FileText className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
-              <div>
-                <div className="text-sm font-bold text-[#003366] group-hover:text-[#cc0000] transition">Bảng quy đổi điểm Ngoại ngữ</div>
-                <div className="text-[11px] text-slate-500">Phụ lục áp dụng cho PT4</div>
-              </div>
-            </a>
           </div>
         </div>
-
-        <div className="bg-white border border-slate-200 shadow-sm">
-          <div className="bg-slate-100 text-[#003366] font-bold p-3 uppercase text-sm border-b border-slate-200 flex items-center">
-            <MessageCircle className="w-5 h-5 mr-2" /> Kênh Hỗ trợ
-          </div>
-          <div className="p-4 space-y-4 text-sm">
-            <div className="flex items-center gap-3">
-              <div className="bg-red-50 p-2 rounded text-[#cc0000] border border-red-100"><Phone className="w-5 h-5"/></div>
-              <div><div className="text-[11px] text-slate-500 uppercase">Đường dây nóng</div><div className="font-black text-[#cc0000] text-base">{ACADEMY_INFO.hotline}</div></div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-50 p-2 rounded text-[#003366] border border-blue-100"><Globe className="w-5 h-5"/></div>
-              <div><div className="text-[11px] text-slate-500 uppercase">Hỗ trợ trực tuyến</div><div className="font-bold text-[#003366]">Fanpage KTH Official</div></div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   );
 }
 
 // ==========================================
-// 4. KHU VỰC THÍ SINH (ĐĂNG KÝ NGUYỆN VỌNG)
+// 4. KHU VỰC THÍ SINH (DASHBOARD CHUẨN PTIT)
 // ==========================================
 function CandidatePortal({ user, setUser, wishes, setWishes, addToast, addAuditLog, isSystemOpen }) {
+  const [activeMenu, setActiveMenu] = useState('wishes'); // 'profile', 'records', 'wishes', 'payment', 'results'
   const [showForm, setShowForm] = useState(false);
   const [newWish, setNewWish] = useState({ majorCode: MAJORS[0].code, methodId: 5, combo: MAJORS[0].combos[0], totalScore: '' });
   
@@ -502,20 +531,11 @@ function CandidatePortal({ user, setUser, wishes, setWishes, addToast, addAuditL
   const isSystemLocked = !isSystemOpen || myWishes.some(w => ['ADMITTED', 'REJECTED', 'CANCELED'].includes(w.status));
   const isAdmitted = myWishes.some(w => w.status === 'ADMITTED');
 
+  // Logic Handlers
   const handlePayment = () => {
     setUser({ ...user, isPaid: true });
     addAuditLog('PAYMENT', `Thanh toán lệ phí cho ${myWishes.length} nguyện vọng.`);
     addToast("Thanh toán thành công!", "success");
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      addAuditLog('UPLOAD', `Tải tệp: ${file.name}`);
-      addToast(`Đã tải lên tệp minh chứng.`, "success");
-    } else {
-      addToast("Chỉ chấp nhận file PDF.", "error");
-    }
   };
 
   const handleAddWish = () => {
@@ -562,126 +582,278 @@ function CandidatePortal({ user, setUser, wishes, setWishes, addToast, addAuditL
     addAuditLog('REORDER_WISH', `Đổi thứ tự ưu tiên.`);
   };
 
+  const MENU_ITEMS = [
+    { id: 'profile', icon: User, label: 'Thông tin cá nhân' },
+    { id: 'records', icon: BookOpen, label: 'Hồ sơ học tập' },
+    { id: 'wishes', icon: FileCheck, label: 'Đăng ký Nguyện vọng' },
+    { id: 'payment', icon: CreditCard, label: 'Thanh toán lệ phí' },
+    { id: 'results', icon: CheckSquare, label: 'Kết quả xét tuyển' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      {/* Sidebar Hồ sơ */}
-      <div className="lg:col-span-1 space-y-6">
-        <div className="bg-white p-6 shadow-sm border border-slate-200 rounded">
-          <div className="flex flex-col items-center mb-6 pb-6 border-b">
-            <Users className="w-16 h-16 text-slate-300 mb-3" />
-            <h3 className="font-bold text-[#003366] text-lg">{user.name}</h3>
-            <p className="text-sm text-slate-500 font-mono">{user.cccd}</p>
+    <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto w-full pt-6">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="w-full md:w-64 flex-shrink-0">
+        <div className="bg-white rounded shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+          <div className="p-4 bg-[#003366] text-white">
+            <h3 className="font-bold text-sm uppercase tracking-wider mb-1">Cổng Thí sinh</h3>
+            <p className="text-xs text-blue-200">Mã TS: {user.id}</p>
           </div>
-          
-          <div className="space-y-4 text-sm mb-6">
-            <div className="flex justify-between items-center bg-slate-50 p-3 border rounded">
-              <span>Khu vực ưu tiên:</span><span className="font-bold text-[#003366]">{user.region}</span>
-            </div>
-            
-            <div className={`p-4 border rounded ${user.isPaid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-              <div className="flex justify-between items-center mb-3">
-                <span className="font-medium">Lệ phí (50k/NV):</span>
-                <span className={`font-bold ${user.isPaid ? 'text-green-600' : 'text-[#cc0000]'}`}>{(myWishes.length * 50000).toLocaleString()}đ</span>
-              </div>
-              {!user.isPaid && myWishes.length > 0 && (
-                <button onClick={handlePayment} className="w-full bg-[#cc0000] text-white py-2 rounded text-xs font-bold hover:bg-red-700">Thanh toán trực tuyến</button>
-              )}
-              {user.isPaid && <div className="text-green-600 font-bold text-xs"><CheckCircle className="w-4 h-4 inline mr-1"/>Đã hoàn thành</div>}
-            </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <label className="block text-sm font-bold mb-2 text-[#003366]">Minh chứng (PDF)</label>
-            <div className="border-2 border-dashed border-slate-300 p-4 text-center relative cursor-pointer hover:bg-slate-50 rounded">
-              <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-              <UploadCloud className="w-6 h-6 mx-auto mb-1 text-slate-400" />
-              <span className="text-[11px] text-slate-500">Tải lên Học bạ / IELTS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Quản lý NV */}
-      <div className="lg:col-span-3 space-y-6">
-        {isSystemLocked && !isSystemOpen && (
-          <div className={`p-6 shadow-sm border rounded flex flex-col md:flex-row items-center justify-between gap-4 ${isAdmitted ? 'bg-green-50 border-green-300' : 'bg-slate-50 border-slate-300'}`}>
-            <div>
-              <h4 className={`font-black text-xl mb-1 uppercase ${isAdmitted ? 'text-green-700' : 'text-slate-700'}`}>
-                {isAdmitted ? 'CHÚC MỪNG TRÚNG TUYỂN!' : 'KẾT QUẢ: KHÔNG TRÚNG TUYỂN'}
-              </h4>
-              <p className="text-sm">
-                {isAdmitted ? `Bạn đỗ NV${myWishes.find(w=>w.status==='ADMITTED')?.priority}. Vui lòng xác nhận nhập học để giữ chỗ.` : 'Bạn chưa đủ điểm chuẩn trong đợt này. Theo dõi đợt bổ sung trên web.'}
-              </p>
-            </div>
-            {isAdmitted && (
-              <button onClick={() => {setUser({...user, isConfirmed: true}); addToast("Đã xác nhận thành công!", "success");}} className={`text-white font-bold px-6 py-3 rounded shadow w-full md:w-auto ${user.isConfirmed ? 'bg-green-800' : 'bg-green-600 hover:bg-green-700'}`}>
-                {user.isConfirmed ? 'ĐÃ XÁC NHẬN' : 'Xác nhận Nhập học'}
+          <nav className="flex flex-col py-2">
+            {MENU_ITEMS.map(item => (
+              <button 
+                key={item.id}
+                onClick={() => setActiveMenu(item.id)}
+                className={`flex items-center px-5 py-3 text-sm font-medium transition-colors text-left border-l-4
+                  ${activeMenu === item.id 
+                    ? 'border-[#cc0000] bg-red-50 text-[#cc0000] font-bold' 
+                    : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-[#003366]'}`}
+              >
+                <item.icon className={`w-5 h-5 mr-3 ${activeMenu === item.id ? 'text-[#cc0000]' : 'text-slate-400'}`} />
+                {item.label}
               </button>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 min-w-0 pb-12">
+        {/* TAB 1: THÔNG TIN CÁ NHÂN */}
+        {activeMenu === 'profile' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Thông tin Lý lịch & Liên hệ</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Họ và tên</label><input type="text" disabled value={user.name} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Số Thẻ CCCD</label><input type="text" disabled value={user.cccd} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Số điện thoại</label><input type="text" defaultValue={user.phone} className="w-full p-2.5 border rounded focus:border-[#003366] outline-none" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Email liên hệ</label><input type="email" defaultValue={user.email} className="w-full p-2.5 border rounded focus:border-[#003366] outline-none" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Khu vực ưu tiên</label><input type="text" disabled value={user.region} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Đối tượng ưu tiên</label><input type="text" disabled value={user.target} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+              <button className="bg-[#003366] text-white font-bold px-6 py-2.5 rounded shadow-sm hover:bg-blue-900 transition">Cập nhật thông tin</button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: HỒ SƠ HỌC TẬP (MINH CHỨNG) */}
+        {activeMenu === 'records' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Hồ sơ Học tập & Minh chứng</h3>
+            <div className="bg-blue-50 p-4 rounded border border-blue-100 text-sm text-blue-800 mb-6">
+              Tải lên bản scan rõ nét (định dạng PDF) các loại giấy tờ để làm minh chứng xét tuyển. Dung lượng tối đa 5MB/file.
+            </div>
+            <div className="space-y-6">
+              {['Học bạ THPT (Lớp 10,11,12)', 'Chứng chỉ Ngoại ngữ (IELTS/TOEFL)', 'Giấy chứng nhận Điểm ĐGNL/ĐGTD', 'Minh chứng đối tượng ưu tiên'].map((doc, idx) => (
+                <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-200 rounded">
+                  <div className="mb-3 md:mb-0">
+                    <h4 className="font-bold text-slate-700">{doc}</h4>
+                    <p className="text-xs text-slate-500 mt-1">Chưa cập nhật tệp tin.</p>
+                  </div>
+                  <div className="relative overflow-hidden inline-block">
+                    <button className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded text-sm flex items-center transition cursor-pointer">
+                      <UploadCloud className="w-4 h-4 mr-2" /> Chọn File
+                    </button>
+                    <input type="file" accept=".pdf" className="absolute left-0 top-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => {
+                      if(e.target.files[0]) { addToast(`Đã tải lên: ${e.target.files[0].name}`, 'success'); }
+                    }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: ĐĂNG KÝ NGUYỆN VỌNG */}
+        {activeMenu === 'wishes' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 border-b border-slate-200 pb-4 gap-4">
+              <h3 className="text-xl font-bold text-[#003366] uppercase">Đăng ký Nguyện vọng</h3>
+              <span className="text-xs bg-[#003366] text-white px-3 py-1.5 rounded font-bold self-start">Đã dùng: {myWishes.length} / 15 NV</span>
+            </div>
+
+            <div className="space-y-3 mb-8">
+              {myWishes.length === 0 && <div className="text-center p-8 bg-slate-50 text-slate-400 text-sm border-2 border-dashed rounded">Chưa có nguyện vọng. Bấm thêm mới bên dưới.</div>}
+              {myWishes.map((wish, index) => (
+                <div key={wish.id} className={`flex flex-col md:flex-row justify-between p-4 border shadow-sm rounded items-center ${wish.status === 'ADMITTED' ? 'bg-green-50 border-green-300' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center gap-4 w-full">
+                    <div className={`w-8 h-8 text-white rounded-full flex flex-shrink-0 items-center justify-center font-bold ${wish.status === 'ADMITTED' ? 'bg-green-600' : 'bg-[#003366]'}`}>{wish.priority}</div>
+                    <div>
+                      <div className="font-bold text-[#003366] text-base leading-tight">{MAJORS.find(m => m.code === wish.majorCode)?.name}</div>
+                      <div className="text-xs text-slate-600 mt-1.5 flex flex-wrap gap-2 items-center">
+                        <span className="bg-slate-100 px-2 py-0.5 rounded font-medium border">Mã: {wish.majorCode}</span>
+                        <span className="bg-slate-100 px-2 py-0.5 rounded font-medium border">PT{wish.methodId}</span>
+                        <span className="bg-slate-100 px-2 py-0.5 rounded font-medium border">Tổ hợp {wish.combo}</span>
+                        <span className="text-[#cc0000] font-bold">Điểm xét: {wish.totalScore}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-4 md:mt-0 w-full md:w-auto justify-end">
+                    <span className={`text-xs font-bold uppercase ${wish.status==='ADMITTED' ? 'text-green-600' : wish.status==='REJECTED' ? 'text-red-500' : 'text-slate-500'}`}>
+                      {wish.status === 'PENDING' ? 'Chờ duyệt' : wish.status === 'ADMITTED' ? 'Trúng tuyển' : wish.status === 'CANCELED' ? 'Bị hủy' : 'Trượt'}
+                    </span>
+                    {!isSystemLocked && (
+                      <div className="flex bg-slate-50 p-1 rounded border border-slate-200">
+                        <button disabled={index===0} onClick={() => movePriority(wish.id, 'UP')} className="p-1.5 text-slate-500 hover:text-[#003366] disabled:opacity-30"><ArrowUp className="w-4 h-4"/></button>
+                        <button disabled={index===myWishes.length-1} onClick={() => movePriority(wish.id, 'DOWN')} className="p-1.5 text-slate-500 hover:text-[#003366] disabled:opacity-30"><ArrowDown className="w-4 h-4"/></button>
+                        <div className="w-px bg-slate-200 mx-1"></div>
+                        <button onClick={() => deleteWish(wish.id)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!isSystemLocked && (
+              showForm ? (
+                <div className="border border-blue-200 bg-blue-50/50 p-6 rounded shadow-inner">
+                  <h4 className="font-bold text-[#003366] text-sm mb-4 uppercase">Đăng ký NV Mới</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5 text-sm">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Chọn Ngành đào tạo</label>
+                      <select className="p-2.5 border border-slate-300 rounded w-full bg-white font-medium" value={newWish.majorCode} onChange={e => {const m = MAJORS.find(x => x.code === e.target.value); setNewWish({...newWish, majorCode: m.code, combo: m.combos[0]})}}>
+                        {MAJORS.map(m => <option key={m.code} value={m.code}>{m.code} - {m.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Phương thức xét tuyển</label>
+                      <select className="p-2.5 border border-slate-300 rounded w-full bg-white" value={newWish.methodId} onChange={e => setNewWish({...newWish, methodId: Number(e.target.value)})}>
+                        {METHODS.map(m => <option key={m.id} value={m.id}>PT {m.id} - {m.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Tổ hợp môn / Điểm quy đổi</label>
+                      <div className="flex gap-2">
+                        <select className="p-2.5 border border-slate-300 rounded w-1/2 bg-white" value={newWish.combo} onChange={e => setNewWish({...newWish, combo: e.target.value})}>
+                          {MAJORS.find(m => m.code === newWish.majorCode)?.combos.map(c => <option key={c} value={c}>Tổ hợp {c}</option>)}
+                        </select>
+                        <input type="number" placeholder="Nhập điểm..." className="p-2.5 border border-slate-300 rounded w-1/2 font-bold text-[#cc0000]" value={newWish.totalScore} onChange={e => setNewWish({...newWish, totalScore: e.target.value})} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 border-t border-blue-200 pt-4 mt-2">
+                    <button onClick={() => setShowForm(false)} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-600 text-sm font-bold rounded hover:bg-slate-50">Hủy</button>
+                    <button onClick={handleAddWish} className="px-5 py-2.5 bg-[#003366] text-white text-sm font-bold rounded hover:bg-blue-900 shadow-sm flex items-center"><Check className="w-4 h-4 mr-2"/> Xác nhận lưu</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowForm(true)} className="w-full border-2 border-dashed border-slate-300 text-[#003366] py-5 font-bold hover:border-[#003366] hover:bg-blue-50 transition flex justify-center items-center rounded bg-slate-50/50">
+                  <Plus className="w-5 h-5 mr-2" /> Thêm Nguyện vọng
+                </button>
+              )
             )}
           </div>
         )}
 
-        <div className="bg-white p-6 md:p-8 shadow-sm border border-slate-200 rounded">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
-            <h3 className="text-xl font-bold text-[#003366] uppercase">Danh sách Nguyện vọng</h3>
-            <span className="text-xs bg-slate-100 text-[#003366] px-3 py-1 rounded border border-slate-300 font-bold">{myWishes.length} / 15 NV</span>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            {myWishes.length === 0 && <div className="text-center p-8 bg-slate-50 text-slate-400 text-sm border-2 border-dashed rounded">Chưa có nguyện vọng. Bấm thêm mới.</div>}
-            {myWishes.map((wish, index) => (
-              <div key={wish.id} className={`flex flex-col md:flex-row justify-between p-4 border shadow-sm rounded items-center ${wish.status === 'ADMITTED' ? 'bg-green-50 border-green-300' : 'bg-white border-slate-200'}`}>
-                <div className="flex items-center gap-4 w-full">
-                  <div className={`w-8 h-8 text-white rounded-full flex items-center justify-center font-bold ${wish.status === 'ADMITTED' ? 'bg-green-600' : 'bg-[#003366]'}`}>{wish.priority}</div>
-                  <div>
-                    <div className="font-bold text-[#003366]">{MAJORS.find(m => m.code === wish.majorCode)?.name}</div>
-                    <div className="text-xs text-slate-600 mt-1">Mã: <strong>{wish.majorCode}</strong> | PT{wish.methodId} | Tổ hợp: {wish.combo} | Điểm xét: <strong className="text-[#cc0000]">{wish.totalScore}</strong></div>
-                  </div>
+        {/* TAB 4: THANH TOÁN LỆ PHÍ */}
+        {activeMenu === 'payment' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Thanh toán Lệ phí Xét tuyển</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-slate-50 p-6 rounded border border-slate-200">
+                <h4 className="font-bold text-slate-700 mb-4">Chi tiết Biên lai</h4>
+                <div className="space-y-3 text-sm mb-6 border-b border-slate-200 pb-6">
+                  <div className="flex justify-between"><span>Số thẻ CCCD:</span><span className="font-bold">{user.cccd}</span></div>
+                  <div className="flex justify-between"><span>Họ và tên:</span><span className="font-bold uppercase">{user.name}</span></div>
+                  <div className="flex justify-between"><span>Số lượng NV đã ĐK:</span><span className="font-bold">{myWishes.length} nguyện vọng</span></div>
+                  <div className="flex justify-between"><span>Đơn giá lệ phí:</span><span>50,000 VNĐ / 1 NV</span></div>
                 </div>
-                <div className="flex items-center gap-3 mt-4 md:mt-0">
-                  <span className={`text-xs font-bold uppercase ${wish.status==='ADMITTED' ? 'text-green-600' : wish.status==='REJECTED' ? 'text-red-500' : 'text-slate-500'}`}>
-                    {wish.status === 'PENDING' ? 'Chờ xét' : wish.status === 'ADMITTED' ? 'Trúng tuyển' : wish.status === 'CANCELED' ? 'Bị hủy' : 'Trượt'}
-                  </span>
-                  {!isSystemLocked && (
-                    <div className="flex bg-slate-100 p-1 rounded border border-slate-200">
-                      <button onClick={() => movePriority(wish.id, 'UP')} className="p-1 text-slate-500 hover:text-[#003366]"><ArrowUp className="w-4 h-4"/></button>
-                      <button onClick={() => movePriority(wish.id, 'DOWN')} className="p-1 text-slate-500 hover:text-[#003366]"><ArrowDown className="w-4 h-4"/></button>
-                      <button onClick={() => deleteWish(wish.id)} className="p-1 text-red-500 hover:text-red-700 ml-1"><Trash2 className="w-4 h-4"/></button>
+                <div className="flex justify-between items-center text-lg">
+                  <span className="font-bold text-slate-800">TỔNG TIỀN:</span>
+                  <span className="font-black text-[#cc0000]">{(myWishes.length * 50000).toLocaleString()} VNĐ</span>
+                </div>
+                
+                <div className="mt-8">
+                  {user.isPaid ? (
+                    <div className="bg-green-100 text-green-800 p-4 rounded border border-green-200 text-center font-bold flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 mr-2" /> Đã Hoàn Tất Thanh Toán
                     </div>
+                  ) : (
+                    <button onClick={handlePayment} disabled={myWishes.length===0} className="w-full bg-[#cc0000] text-white py-3 rounded font-bold shadow-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                      Xác nhận Đã Chuyển khoản
+                    </button>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {!isSystemLocked && (
-            showForm ? (
-              <div className="border border-blue-100 bg-blue-50/50 p-6 rounded">
-                <h4 className="font-bold text-[#003366] text-sm mb-4 uppercase">Thêm Nguyện vọng Xét tuyển</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-                  <select className="p-2 border border-slate-300 rounded" value={newWish.majorCode} onChange={e => {const m = MAJORS.find(x => x.code === e.target.value); setNewWish({...newWish, majorCode: m.code, combo: m.combos[0]})}}>
-                    {MAJORS.map(m => <option key={m.code} value={m.code}>{m.code} - {m.name}</option>)}
-                  </select>
-                  <select className="p-2 border border-slate-300 rounded" value={newWish.methodId} onChange={e => setNewWish({...newWish, methodId: Number(e.target.value)})}>
-                    {METHODS.map(m => <option key={m.id} value={m.id}>PT {m.id} - {m.name}</option>)}
-                  </select>
-                  <select className="p-2 border border-slate-300 rounded" value={newWish.combo} onChange={e => setNewWish({...newWish, combo: e.target.value})}>
-                    {MAJORS.find(m => m.code === newWish.majorCode)?.combos.map(c => <option key={c} value={c}>Tổ hợp {c}</option>)}
-                  </select>
-                  <input type="number" placeholder="Nhập điểm tổng (VD: 27.5)" className="p-2 border border-slate-300 rounded font-bold text-[#cc0000]" value={newWish.totalScore} onChange={e => setNewWish({...newWish, totalScore: e.target.value})} />
+              <div className="p-6 border-2 border-dashed border-blue-200 rounded bg-blue-50/30">
+                <h4 className="font-bold text-[#003366] mb-4 text-center">Quét mã QR để Thanh toán</h4>
+                <div className="w-48 h-48 bg-white mx-auto border border-slate-200 shadow-sm flex items-center justify-center mb-6">
+                   <div className="text-center text-slate-400 text-xs">
+                     [Hình ảnh Mã QR VNPAY]
+                     <p className="mt-2 text-[10px]">Tự động điền số tiền và nội dung</p>
+                   </div>
                 </div>
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => setShowForm(false)} className="px-5 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-bold rounded hover:bg-slate-50">Hủy bỏ</button>
-                  <button onClick={handleAddWish} className="px-5 py-2 bg-[#003366] text-white text-sm font-bold rounded hover:bg-blue-900 shadow-sm">Lưu thông tin</button>
+                <div className="text-sm space-y-2 text-slate-700 text-center">
+                  <p>Ngân hàng: <strong>BIDV</strong> (CN Hà Nội)</p>
+                  <p>Số tài khoản: <strong>1234567890</strong></p>
+                  <p>Chủ tài khoản: <strong>HOC VIEN KY THUAT VA CN AN NINH</strong></p>
+                  <p>Nội dung: <strong className="text-[#cc0000]">{user.cccd} NOP LE PHI XT</strong></p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: KẾT QUẢ XÉT TUYỂN */}
+        {activeMenu === 'results' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Kết quả Xét tuyển Đại học 2026</h3>
+            
+            {isSystemOpen ? (
+              <div className="text-center p-12 bg-slate-50 rounded border border-slate-200">
+                <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <h4 className="font-bold text-slate-700 text-lg">Hệ thống đang trong thời gian mở đăng ký</h4>
+                <p className="text-sm text-slate-500 mt-2">Kết quả chính thức sẽ được công bố sau ngày 21/08/2026 theo quy chế của BGDĐT. Vui lòng quay lại sau.</p>
+              </div>
             ) : (
-              <button onClick={() => setShowForm(true)} className="w-full border-2 border-dashed border-slate-300 text-slate-500 py-4 font-bold hover:border-[#003366] hover:text-[#003366] transition flex justify-center items-center rounded bg-slate-50">
-                <Plus className="w-5 h-5 mr-2" /> Đăng ký thêm Nguyện vọng
-              </button>
-            )
-          )}
-        </div>
+              <div className="space-y-6">
+                <div className={`p-8 border rounded flex flex-col md:flex-row items-center justify-between gap-6 ${isAdmitted ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-200'}`}>
+                  <div>
+                    <h4 className={`font-black text-2xl mb-2 uppercase ${isAdmitted ? 'text-green-700' : 'text-red-700'}`}>
+                      {isAdmitted ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG TUYỂN!' : 'KẾT QUẢ: KHÔNG TRÚNG TUYỂN'}
+                    </h4>
+                    <p className="text-base text-slate-700">
+                      {isAdmitted 
+                        ? `Bạn đã xuất sắc trúng tuyển vào nguyện vọng số ${myWishes.find(w=>w.status==='ADMITTED')?.priority}.` 
+                        : 'Điểm xét của bạn chưa đủ để trúng tuyển vào các nguyện vọng đã đăng ký trong đợt 1.'}
+                    </p>
+                  </div>
+                </div>
+
+                {isAdmitted && (
+                  <div className="bg-white border border-slate-200 rounded p-6 shadow-sm">
+                    <h4 className="font-bold text-[#003366] border-b pb-2 mb-4">Thông tin Trúng tuyển</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-8">
+                      <div><span className="text-slate-500 w-32 inline-block">Họ và tên:</span> <strong>{user.name}</strong></div>
+                      <div><span className="text-slate-500 w-32 inline-block">Số CCCD:</span> <strong>{user.cccd}</strong></div>
+                      <div><span className="text-slate-500 w-32 inline-block">Ngành trúng tuyển:</span> <strong className="text-[#cc0000]">{MAJORS.find(m => m.code === myWishes.find(w=>w.status==='ADMITTED')?.majorCode)?.name}</strong></div>
+                      <div><span className="text-slate-500 w-32 inline-block">Điểm chuẩn:</span> <strong>{myWishes.find(w=>w.status==='ADMITTED')?.totalScore}</strong></div>
+                    </div>
+                    
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm text-yellow-800 mb-6">
+                      <strong>Lưu ý quan trọng:</strong> Thí sinh bắt buộc phải nhấn "Xác nhận Nhập học" trên hệ thống trước 17h00 ngày 26/08/2026. Quá thời hạn này, kết quả sẽ bị hủy.
+                    </div>
+
+                    <div className="flex justify-center">
+                      <button 
+                        onClick={() => {setUser({...user, isConfirmed: true}); addToast("Xác nhận nhập học thành công!", "success");}} 
+                        disabled={user.isConfirmed}
+                        className={`text-white font-bold px-8 py-3.5 rounded shadow-md transition-all text-lg w-full md:w-auto uppercase
+                          ${user.isConfirmed ? 'bg-green-800 cursor-not-allowed opacity-90' : 'bg-green-600 hover:bg-green-700 hover:scale-105'}`}
+                      >
+                        {user.isConfirmed ? <><CheckSquare className="w-5 h-5 inline mr-2 -mt-1"/> Đã Xác nhận Nhập học</> : 'Xác nhận Nhập học Trực tuyến'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -722,19 +894,19 @@ function AdminDashboard({ wishes, setWishes, candidates, auditLogs, setAuditLogs
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pt-6 px-4">
       <div className="bg-white p-6 border flex flex-col md:flex-row justify-between items-center shadow-sm rounded gap-4">
         <div>
           <h2 className="text-xl font-black text-[#003366] uppercase">Bảng điều khiển Quản trị viên</h2>
-          <p className="text-sm text-green-600 font-bold flex items-center mt-1"><span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> DB Online (Supabase)</p>
+          <p className="text-sm text-green-600 font-bold flex items-center mt-1"><span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> DB Online (Supabase/Postgres)</p>
         </div>
-        <button onClick={runAdmissionAlgorithm} disabled={isProcessing} className={`font-bold px-6 py-3 rounded text-white flex items-center w-full md:w-auto justify-center ${isProcessing ? 'bg-slate-400' : 'bg-[#cc0000] hover:bg-red-800'}`}>
-          {isProcessing ? 'Đang chạy...' : <><Settings className="w-5 h-5 mr-2" /> Chạy Xét tuyển Lọc ảo</>}
+        <button onClick={runAdmissionAlgorithm} disabled={isProcessing} className={`font-bold px-6 py-3 rounded text-white flex items-center w-full md:w-auto justify-center shadow ${isProcessing ? 'bg-slate-400' : 'bg-[#cc0000] hover:bg-red-800'}`}>
+          {isProcessing ? 'Đang xử lý thuật toán...' : <><Settings className="w-5 h-5 mr-2" /> Chạy Xét tuyển Lọc ảo</>}
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[ { l: 'Tổng Chỉ tiêu', v: 100 }, { l: 'Tổng Thí sinh', v: candidates.length }, { l: 'Số NV đăng ký', v: wishes.length }, { l: 'Trúng tuyển', v: wishes.filter(w=>w.status==='ADMITTED').length }].map((k, i) => (
+        {[ { l: 'Tổng Chỉ tiêu', v: 100 }, { l: 'Hồ sơ Thí sinh', v: candidates.length }, { l: 'Số NV đăng ký', v: wishes.length }, { l: 'Đã Trúng tuyển', v: wishes.filter(w=>w.status==='ADMITTED').length }].map((k, i) => (
           <div key={i} className="bg-white p-6 border text-center shadow-sm rounded">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{k.l}</p>
             <h4 className="text-3xl font-black text-[#003366] mt-2">{k.v}</h4>
@@ -743,7 +915,9 @@ function AdminDashboard({ wishes, setWishes, candidates, auditLogs, setAuditLogs
       </div>
 
       <div className="bg-white border shadow-sm rounded overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 font-bold text-[#003366] uppercase text-sm">Dữ liệu SQL (Postgres View)</div>
+        <div className="p-4 border-b bg-slate-50 font-bold text-[#003366] uppercase text-sm flex items-center">
+          <LayoutDashboard className="w-4 h-4 mr-2" /> Dữ liệu SQL Hệ thống (Postgres View)
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#003366] text-white"><tr><th className="p-3">Thí sinh (ID)</th><th className="p-3">Ngành (NV)</th><th className="p-3">Điểm</th><th className="p-3">Trạng thái</th></tr></thead>
@@ -752,9 +926,9 @@ function AdminDashboard({ wishes, setWishes, candidates, auditLogs, setAuditLogs
                 <tr key={w.id} className="hover:bg-slate-50">
                   <td className="p-3 font-bold">{w.candidateId}</td>
                   <td className="p-3 font-bold text-[#cc0000]">{w.majorCode} <span className="text-xs font-normal text-slate-500">(NV{w.priority})</span></td>
-                  <td className="p-3">{w.totalScore}</td>
+                  <td className="p-3 font-mono">{w.totalScore}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${w.status === 'ADMITTED' ? 'bg-green-100 text-green-700' : w.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{w.status}</span>
+                    <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${w.status === 'ADMITTED' ? 'bg-green-100 text-green-700' : w.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{w.status}</span>
                   </td>
                 </tr>
               ))}
