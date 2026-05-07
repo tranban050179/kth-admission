@@ -1,501 +1,901 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Học viện KTH - Cổng Xét tuyển Trực tuyến 2026</title>
-    <!-- Tailwind CSS + Font Awesome + Google Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <style>
-        * { font-family: 'Inter', sans-serif; }
-        .animate-fade-in { animation: fadeIn 0.25s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .toast-slide { animation: slideInRight 0.2s ease-out; }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        input:focus, button:focus { outline: none; ring: 2px solid #003366; }
-        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-    </style>
-</head>
-<body class="bg-[#f1f5f9] text-slate-800 antialiased">
-    <div id="app-root"></div>
+"use client";
 
-    <script>
-        // ======================== DỮ LIỆU MÔ PHỎNG ========================
-        const ACADEMY_INFO = {
-            name: "Học viện Kỹ thuật và Công nghệ an ninh",
-            code: "KTH",
-            locations: ["Hoà Lạc, Hà Nội", "Thuận Thành, Bắc Ninh"],
-            website: "hvktcnan.bocongan.gov.vn",
-            hotline: "098.995.3286",
-        };
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Home, BookOpen, Users, Settings, MessageCircle, CheckCircle, 
+  Plus, Trash2, LogIn, LogOut, FileText, LayoutDashboard, 
+  ShieldCheck, ArrowUp, ArrowDown, Search, X, Bell, Clock, 
+  AlertTriangle, Check, UploadCloud, CreditCard, Send, MapPin, 
+  Globe, Phone, FileDigit, Download, ChevronRight, Calendar, Eye, 
+  Menu, Lock, User, KeyRound, CheckSquare, FileCheck, Edit, Save, Trash
+} from 'lucide-react';
 
-        const MAJORS = [
-            { code: 'KTHDS01', name: 'Khoa học dữ liệu và Trí tuệ nhân tạo', quota: 20, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] },
-            { code: 'KTHDS02', name: 'Công nghệ phần mềm', quota: 20, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] },
-            { code: 'KTHDS03', name: 'An toàn hệ thống thông tin', quota: 20, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] },
-            { code: 'KTHDS04', name: 'Công nghệ điện tử viễn thông', quota: 20, combos: ['A00', 'A01', 'C01', 'X06', 'X26'] },
-            { code: 'KTHDS05', name: 'Công nghệ điện tử và vi mạch bán dẫn', quota: 20, combos: ['A00', 'A01', 'A02', 'C01', 'X07'] },
-        ];
+// ==========================================
+// 1. HẰNG SỐ & CONFIG CỐ ĐỊNH
+// ==========================================
+const ACADEMY_INFO = {
+  name: "Học viện Kỹ thuật và Công nghệ an ninh",
+  code: "KTH",
+  locations: ["Hoà Lạc, Hà Nội", "Thuận Thành, Bắc Ninh"],
+  website: "hvktcnan.bocongan.gov.vn",
+  hotline: "098.995.3286",
+};
 
-        const METHODS = [
-            { id: 1, name: 'Xét tuyển tài năng', desc: 'Xét tuyển thẳng, ưu tiên xét tuyển theo quy định của BGDĐT và xét tuyển dựa vào Hồ sơ năng lực (HSNL). Điểm HSNL = ĐHL (60%) + ĐTT (40%) + ĐƯT.' },
-            { id: 2, name: 'Đánh giá năng lực / Đánh giá tư duy', desc: 'Dựa vào kết quả thi ĐGNL của ĐHQGHN, ĐHQG-HCM, ĐHSPHN và ĐGTD của ĐHBK Hà Nội năm 2026. Điểm xét = Điểm thi quy đổi + ĐƯT.' },
-            { id: 3, name: 'Chứng chỉ quốc tế (SAT/ACT)', desc: 'Thí sinh có chứng chỉ SAT >= 800/1600 hoặc ACT >= 18/36 (còn thời hạn 2 năm tính đến ngày xét tuyển).' },
-            { id: 4, name: 'Chứng chỉ Tiếng Anh + Học bạ', desc: 'IELTS >= 4.0, TOEFL iBT >= 25 kết hợp với điểm học bạ THPT. Điểm xét = Điểm T.Anh quy đổi + Điểm HB + ĐƯT.' },
-            { id: 5, name: 'Kết quả thi THPT 2026', desc: 'Dựa vào điểm thi 3 môn thuộc tổ hợp xét tuyển kỳ thi Tốt nghiệp THPT 2026 theo quy định của BGDĐT.' },
-        ];
+const MAJORS = [
+  { code: 'KTHDS01', name: 'Khoa học dữ liệu và Trí tuệ nhân tạo', quota: 2, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] }, // Quota thấp để dễ test lọc ảo
+  { code: 'KTHDS02', name: 'Công nghệ phần mềm', quota: 2, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] },
+  { code: 'KTHDS03', name: 'An toàn hệ thống thông tin', quota: 2, combos: ['A00', 'A01', 'D01', 'X06', 'X10', 'X26'] },
+  { code: 'KTHDS04', name: 'Công nghệ điện tử viễn thông', quota: 2, combos: ['A00', 'A01', 'C01', 'X06', 'X26'] },
+  { code: 'KTHDS05', name: 'Công nghệ điện tử và vi mạch bán dẫn', quota: 2, combos: ['A00', 'A01', 'A02', 'C01', 'X07'] },
+];
 
-        const CURRENT_DATE = new Date('2026-07-10T10:00:00');
-        const DEADLINE_START = new Date('2026-07-02T00:00:00');
-        const DEADLINE_END = new Date('2026-08-21T17:00:00');
-        const isSystemOpen = CURRENT_DATE >= DEADLINE_START && CURRENT_DATE <= DEADLINE_END;
+const METHODS = [
+  { id: 1, name: 'Xét tuyển tài năng', desc: 'Xét tuyển thẳng, ưu tiên xét tuyển theo quy định của BGDĐT và xét tuyển dựa vào Hồ sơ năng lực (HSNL). Điểm HSNL = ĐHL (60%) + ĐTT (40%) + ĐƯT.' },
+  { id: 2, name: 'Đánh giá năng lực / Đánh giá tư duy', desc: 'Dựa vào kết quả thi ĐGNL của ĐHQGHN, ĐHQG-HCM, ĐHSPHN và ĐGTD của ĐHBK Hà Nội năm 2026. Điểm xét = Điểm thi quy đổi + ĐƯT.' },
+  { id: 3, name: 'Chứng chỉ quốc tế (SAT/ACT)', desc: 'Thí sinh có chứng chỉ SAT >= 800/1600 hoặc ACT >= 18/36 (còn thời hạn 2 năm tính đến ngày xét tuyển).' },
+  { id: 4, name: 'Chứng chỉ Tiếng Anh + Học bạ', desc: 'IELTS >= 4.0, TOEFL iBT >= 25 kết hợp với điểm học bạ THPT. Điểm xét = Điểm T.Anh quy đổi + Điểm HB + ĐƯT.' },
+  { id: 5, name: 'Kết quả thi THPT 2026', desc: 'Dựa vào điểm thi 3 môn thuộc tổ hợp xét tuyển kỳ thi Tốt nghiệp THPT 2026 theo quy định của BGDĐT.' },
+];
 
-        let candidates = [
-            { id: 'C001', name: 'Nguyễn Văn A', cccd: '001099001111', password: 'password', region: 'KV1', target: 'UT1', isPaid: false, isConfirmed: false, phone: '0901234567', email: 'nguyenvana@gmail.com' },
-            { id: 'C002', name: 'Trần Thị B', cccd: '001099002222', password: 'password', region: 'KV2', target: 'NONE', isPaid: true, isConfirmed: false, phone: '0987654321', email: 'tranthib@gmail.com' },
-        ];
+const CURRENT_DATE = new Date('2026-07-10T10:00:00');
+const DEADLINE_START = new Date('2026-07-02T00:00:00');
+const DEADLINE_END = new Date('2026-08-21T17:00:00');
 
-        let wishes = [
-            { id: 'W1', candidateId: 'C001', majorCode: 'KTHDS01', methodId: 5, combo: 'A00', priority: 1, totalScore: 28.5, bonusScore: 2.5, status: 'PENDING' },
-            { id: 'W2', candidateId: 'C001', majorCode: 'KTHDS02', methodId: 5, combo: 'A00', priority: 2, totalScore: 29.0, bonusScore: 2.5, status: 'PENDING' },
-            { id: 'W3', candidateId: 'C002', majorCode: 'KTHDS01', methodId: 4, combo: 'D01', priority: 1, totalScore: 28.8, bonusScore: 0.25, status: 'PENDING' },
-        ];
+// ==========================================
+// 2. DATABASE MÔ PHỎNG (LOCAL STORAGE)
+// ==========================================
+const initDatabase = () => {
+  if (typeof window === 'undefined') return { users: [], wishes: [], logs: [] };
+  
+  const savedDb = localStorage.getItem('kth_database');
+  if (savedDb) return JSON.parse(savedDb);
 
-        let auditLogs = [];
+  // Dữ liệu mẫu (Seed Data)
+  const defaultDb = {
+    users: [
+      { id: 'A001', role: 'SUPER_ADMIN', username: 'admin', password: '123', name: 'Trưởng Ban Tuyển sinh' },
+      { id: 'A002', role: 'EDITOR', username: 'editor', password: '123', name: 'Chuyên viên Xử lý' },
+      { id: 'A003', role: 'VIEWER', username: 'viewer', password: '123', name: 'Giám thị / Thanh tra' },
+      { id: 'C001', role: 'CANDIDATE', username: '001099001111', password: '123', name: 'Nguyễn Văn A', cccd: '001099001111', region: 'KV1', target: 'UT1', isPaid: true, isConfirmed: false, phone: '0901234567', email: 'a@gmail.com' },
+      { id: 'C002', role: 'CANDIDATE', username: '001099002222', password: '123', name: 'Trần Thị B', cccd: '001099002222', region: 'KV2', target: 'NONE', isPaid: true, isConfirmed: false, phone: '0987654321', email: 'b@gmail.com' },
+    ],
+    wishes: [
+      { id: 'W1', candidateId: 'C001', majorCode: 'KTHDS01', methodId: 5, combo: 'A00', priority: 1, totalScore: 28.5, bonusScore: 2.5, status: 'PENDING' },
+      { id: 'W2', candidateId: 'C001', majorCode: 'KTHDS02', methodId: 5, combo: 'A00', priority: 2, totalScore: 29.0, bonusScore: 2.5, status: 'PENDING' },
+      { id: 'W3', candidateId: 'C002', majorCode: 'KTHDS01', methodId: 4, combo: 'D01', priority: 1, totalScore: 28.8, bonusScore: 0.25, status: 'PENDING' },
+    ],
+    logs: [
+      { id: Date.now(), time: new Date().toISOString(), actor: 'SYSTEM', action: 'INIT', detail: 'Hệ thống KTH khởi tạo Database thành công.' }
+    ]
+  };
+  localStorage.setItem('kth_database', JSON.stringify(defaultDb));
+  return defaultDb;
+};
 
-        // State quản lý giao diện
-        let currentUser = null;       // { id, name, role, ... }
-        let activeTab = 'home';       // 'home', 'login', 'portal', 'admin'
-        let toasts = [];
+// ==========================================
+// 3. COMPONENT CHÍNH (APP LÕI)
+// ==========================================
+export default function App() {
+  const [db, setDb] = useState({ users: [], wishes: [], logs: [] });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('home'); 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
-        // Helper thông báo
-        function addToast(message, type = 'info') {
-            const id = Date.now() + Math.random();
-            toasts.push({ id, message, type });
-            setTimeout(() => {
-                toasts = toasts.filter(t => t.id !== id);
-                renderApp();
-            }, 3500);
-            renderApp();
-        }
+  useEffect(() => {
+    setDb(initDatabase());
+    const session = sessionStorage.getItem('kth_session');
+    if(session) {
+      const u = JSON.parse(session);
+      setCurrentUser(u);
+      setActiveTab(u.role === 'CANDIDATE' ? 'portal' : 'admin');
+    }
+  }, []);
 
-        // Lưu lại dữ liệu vào biến toàn cục (tương tác)
-        function updateCandidates(newCandidates) { candidates = newCandidates; renderApp(); }
-        function updateWishes(newWishes) { wishes = newWishes; renderApp(); }
-        function addAuditLog(action, detail) {
-            auditLogs = [{ id: Date.now(), time: new Date().toISOString(), actor: currentUser?.id || 'system', action, detail }, ...auditLogs].slice(0, 50);
-            renderApp();
-        }
+  const updateDb = (newDb) => {
+    setDb(newDb);
+    localStorage.setItem('kth_database', JSON.stringify(newDb));
+  };
 
-        // ======================== ĐĂNG NHẬP ========================
-        function handleLogin(cccd, password, roleHint = 'CANDIDATE') {
-            if (cccd === 'admin' && password === 'admin') {
-                currentUser = { id: 'A001', name: 'Ban Tuyển sinh', role: 'ADMIN' };
-                activeTab = 'admin';
-                addToast('Đăng nhập Quản trị thành công!', 'success');
-                addAuditLog('LOGIN_ADMIN', 'Admin đăng nhập');
-                renderApp();
-                return;
-            }
-            const user = candidates.find(c => c.cccd === cccd && c.password === password);
-            if (user) {
-                currentUser = { ...user, role: 'CANDIDATE' };
-                activeTab = 'portal';
-                addToast(`Xin chào ${user.name}, chào mừng đến cổng xét tuyển!`, 'success');
-                addAuditLog('LOGIN_CANDIDATE', `${user.cccd} đăng nhập`);
-                renderApp();
-            } else {
-                addToast('Sai CCCD hoặc mật khẩu!', 'error');
-            }
-        }
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  };
 
-        function logout() {
-            currentUser = null;
-            activeTab = 'home';
-            addToast('Đã đăng xuất', 'info');
-            renderApp();
-        }
+  const writeLog = (actorId, action, detail) => {
+    const newLogs = [{ id: Date.now(), time: new Date().toISOString(), actor: actorId, action, detail }, ...db.logs];
+    updateDb({ ...db, logs: newLogs });
+  };
 
-        // ================ Hàm xử lý nghiệp vụ Nguyện vọng & Thanh toán ================
-        function getMyWishes() {
-            if (!currentUser) return [];
-            return wishes.filter(w => w.candidateId === currentUser.id).sort((a,b) => a.priority - b.priority);
-        }
+  const handleAuth = (username, password, type, extraData = null) => {
+    if (type === 'LOGIN') {
+      const user = db.users.find(u => u.username === username && u.password === password);
+      if (user) {
+        setCurrentUser(user);
+        sessionStorage.setItem('kth_session', JSON.stringify(user));
+        setActiveTab(user.role === 'CANDIDATE' ? 'portal' : 'admin');
+        addToast(`Đăng nhập thành công! Xin chào ${user.name}`, 'success');
+        writeLog(user.id, 'LOGIN', 'Truy cập hệ thống');
+      } else {
+        addToast('Tên đăng nhập hoặc mật khẩu không đúng!', 'error');
+      }
+    } else if (type === 'REGISTER') {
+      const exists = db.users.find(u => u.username === username);
+      if (exists) {
+        addToast('CCCD này đã được đăng ký trong hệ thống!', 'error');
+        return;
+      }
+      const newUser = {
+        id: `C_${Date.now()}`, role: 'CANDIDATE', username: username, password: password,
+        name: extraData.name, cccd: username, region: 'KV3', target: 'NONE', 
+        isPaid: false, isConfirmed: false, phone: '', email: ''
+      };
+      updateDb({ ...db, users: [...db.users, newUser] });
+      addToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+      writeLog(newUser.id, 'REGISTER', 'Tạo tài khoản mới');
+      return true; 
+    }
+  };
 
-        function addWish(majorCode, methodId, combo, totalScore) {
-            if (!currentUser) return false;
-            const myWishes = getMyWishes();
-            if (!currentUser.isPaid && myWishes.length > 0) { addToast("Vui lòng thanh toán lệ phí trước khi thêm nguyện vọng.", "error"); return false; }
-            if (myWishes.length >= 15) { addToast("Tối đa 15 nguyện vọng.", "error"); return false; }
-            if (!totalScore || totalScore <= 0 || totalScore > 30) { addToast("Điểm không hợp lệ (0-30).", "error"); return false; }
-            const newId = `W_${Date.now()}_${Math.random()}`;
-            const newWish = {
-                id: newId,
-                candidateId: currentUser.id,
-                majorCode,
-                methodId: parseInt(methodId),
-                combo,
-                priority: myWishes.length + 1,
-                totalScore: parseFloat(totalScore),
-                bonusScore: 0,
-                status: 'PENDING'
-            };
-            updateWishes([...wishes, newWish]);
-            addAuditLog('ADD_WISH', `Thêm NV: ${majorCode} - ${combo} - ${totalScore}đ`);
-            addToast("Thêm nguyện vọng thành công!", "success");
-            return true;
-        }
+  const logout = () => {
+    writeLog(currentUser.id, 'LOGOUT', 'Rời khỏi hệ thống');
+    setCurrentUser(null);
+    sessionStorage.removeItem('kth_session');
+    setActiveTab('home');
+    setMobileMenuOpen(false);
+  };
 
-        function deleteWish(wishId) {
-            if (!currentUser) return;
-            const myWishes = getMyWishes();
-            const targetWish = myWishes.find(w => w.id === wishId);
-            if (!targetWish) return;
-            if (!isSystemOpen) { addToast("Hệ thống đã đóng đăng ký!", "error"); return; }
-            let newWishes = wishes.filter(w => w.id !== wishId);
-            // sắp xếp lại priority
-            const remaining = newWishes.filter(w => w.candidateId === currentUser.id).sort((a,b) => a.priority - b.priority);
-            remaining.forEach((w, idx) => { w.priority = idx + 1; });
-            newWishes = newWishes.map(w => {
-                if (w.candidateId === currentUser.id) {
-                    const upd = remaining.find(r => r.id === w.id);
-                    if (upd) return upd;
-                }
-                return w;
-            });
-            updateWishes(newWishes);
-            addAuditLog('DELETE_WISH', `Xóa NV ${targetWish.majorCode}`);
-            addToast("Đã xóa nguyện vọng.", "info");
-        }
+  const isSystemOpen = CURRENT_DATE >= DEADLINE_START && CURRENT_DATE <= DEADLINE_END;
 
-        function movePriority(wishId, direction) {
-            if (!currentUser || !isSystemOpen) return;
-            let myWishes = getMyWishes();
-            const idx = myWishes.findIndex(w => w.id === wishId);
-            if (idx === -1) return;
-            if (direction === 'UP' && idx > 0) {
-                [myWishes[idx].priority, myWishes[idx-1].priority] = [myWishes[idx-1].priority, myWishes[idx].priority];
-            } else if (direction === 'DOWN' && idx < myWishes.length-1) {
-                [myWishes[idx].priority, myWishes[idx+1].priority] = [myWishes[idx+1].priority, myWishes[idx].priority];
-            } else return;
-            const updatedWishes = wishes.map(w => {
-                if (w.candidateId === currentUser.id) {
-                    const found = myWishes.find(mw => mw.id === w.id);
-                    if (found) return found;
-                }
-                return w;
-            });
-            updateWishes(updatedWishes);
-            addAuditLog('REORDER_WISH', `Thay đổi thứ tự ưu tiên`);
-        }
+  // Render Layout Dashboard (Dành cho người đã đăng nhập)
+  if (activeTab === 'portal' || activeTab === 'admin') {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] font-sans text-slate-800 flex flex-col">
+        {/* Toasts */}
+        <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+          {toasts.map(toast => (
+            <div key={toast.id} className={`flex items-center p-4 rounded-lg shadow-lg border text-sm font-bold transition-all pointer-events-auto
+              ${toast.type === 'success' ? 'bg-white border-l-4 border-l-green-500 text-slate-700' : 
+                toast.type === 'error' ? 'bg-white border-l-4 border-l-red-500 text-slate-700' : 
+                'bg-white border-l-4 border-l-blue-500 text-slate-700'}`}>
+              {toast.type === 'success' && <CheckCircle className="w-5 h-5 mr-3 text-green-500" />}
+              {toast.type === 'error' && <AlertTriangle className="w-5 h-5 mr-3 text-red-500" />}
+              {toast.type === 'info' && <Bell className="w-5 h-5 mr-3 text-blue-500" />}
+              {toast.message}
+            </div>
+          ))}
+        </div>
 
-        function handlePayment() {
-            if (!currentUser) return;
-            const updated = candidates.map(c => c.id === currentUser.id ? { ...c, isPaid: true } : c);
-            updateCandidates(updated);
-            currentUser = { ...currentUser, isPaid: true };
-            addAuditLog('PAYMENT', `Thanh toán lệ phí cho ${getMyWishes().length} nguyện vọng.`);
-            addToast("Thanh toán thành công! Bạn có thể thêm/xóa nguyện vọng.", "success");
-        }
+        {/* Dashboard Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-50 h-16 flex items-center justify-between px-4 lg:px-8 shadow-sm">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('home')}>
+             <ShieldCheck className="h-8 w-8 text-[#003366]" />
+             <span className="font-black text-lg text-[#003366] uppercase hidden sm:block">KTH Admissions</span>
+          </div>
+          <div className="flex items-center gap-4">
+             {isSystemOpen && <div className="hidden md:flex items-center text-xs font-bold bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full"><Clock className="w-4 h-4 mr-1"/> Hệ thống đang mở</div>}
+             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-full py-1 pr-4 pl-1 shadow-inner">
+               <div className="w-8 h-8 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold">{currentUser?.name.charAt(0)}</div>
+               <div className="flex flex-col text-xs">
+                 <span className="font-bold text-[#003366] leading-none">{currentUser?.name}</span>
+                 <span className="text-slate-500 mt-0.5">{currentUser?.role !== 'CANDIDATE' ? `Quyền: ${currentUser?.role}` : `TS: ${currentUser?.cccd}`}</span>
+               </div>
+             </div>
+             <button onClick={logout} className="text-slate-400 hover:text-red-500 transition bg-slate-100 p-2 rounded-full border border-slate-200" title="Đăng xuất"><LogOut className="w-4 h-4"/></button>
+          </div>
+        </header>
 
-        // ================ ADMIN xét duyệt ================
-        function adminUpdateWishStatus(wishId, newStatus) {
-            const newWishes = wishes.map(w => w.id === wishId ? { ...w, status: newStatus } : w);
-            updateWishes(newWishes);
-            addAuditLog('ADMIN_UPDATE', `Cập nhật trạng thái NV ${wishId} thành ${newStatus}`);
-            addToast(`Cập nhật trạng thái nguyện vọng`, 'success');
-        }
+        {activeTab === 'portal' && <CandidatePortal db={db} updateDb={updateDb} user={currentUser} setUser={(u) => {setCurrentUser(u); sessionStorage.setItem('kth_session', JSON.stringify(u));}} addToast={addToast} writeLog={writeLog} isSystemOpen={isSystemOpen} />}
+        {activeTab === 'admin' && <AdminDashboard db={db} updateDb={updateDb} adminUser={currentUser} addToast={addToast} writeLog={writeLog} />}
+      </div>
+    );
+  }
 
-        // ======================== RENDER CHÍNH ========================
-        function renderApp() {
-            const root = document.getElementById('app-root');
-            if (!root) return;
-            let html = `
-                <div class="fixed top-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none">
-                    ${toasts.map(t => `
-                        <div class="pointer-events-auto bg-white rounded-lg shadow-lg border-l-4 ${t.type === 'success' ? 'border-green-500' : t.type === 'error' ? 'border-red-500' : 'border-blue-500'} p-3 flex items-center gap-3 text-sm font-medium animate-fade-in">
-                            ${t.type === 'success' ? '<i class="fas fa-check-circle text-green-500 text-lg"></i>' : t.type === 'error' ? '<i class="fas fa-exclamation-triangle text-red-500"></i>' : '<i class="fas fa-bell text-blue-500"></i>'}
-                            <span>${escapeHtml(t.message)}</span>
-                        </div>
-                    `).join('')}
+  // Render Layout Trang chủ (Chưa đăng nhập)
+  return (
+    <div className="min-h-screen bg-[#f1f5f9] font-sans text-slate-800 flex flex-col">
+      <div className="fixed top-24 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className={`flex items-center p-4 rounded-lg shadow-lg border text-sm font-bold transition-all pointer-events-auto
+            ${toast.type === 'success' ? 'bg-white border-l-4 border-l-green-500 text-slate-700' : 
+              toast.type === 'error' ? 'bg-white border-l-4 border-l-red-500 text-slate-700' : 
+              'bg-white border-l-4 border-l-blue-500 text-slate-700'}`}
+          >
+            {toast.type === 'success' && <CheckCircle className="w-5 h-5 mr-3 text-green-500" />}
+            {toast.type === 'error' && <AlertTriangle className="w-5 h-5 mr-3 text-red-500" />}
+            {toast.type === 'info' && <Bell className="w-5 h-5 mr-3 text-blue-500" />}
+            {toast.message}
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-[#cc0000] text-white text-xs py-2 hidden md:block border-b border-red-800">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <div className="flex gap-6 font-medium">
+            <span className="flex items-center hover:text-red-200 cursor-pointer transition"><Phone className="w-3.5 h-3.5 mr-1.5"/> Hotline: {ACADEMY_INFO.hotline}</span>
+            <span className="flex items-center hover:text-red-200 cursor-pointer transition"><Globe className="w-3.5 h-3.5 mr-1.5"/> {ACADEMY_INFO.website}</span>
+          </div>
+          <div className="flex gap-5 uppercase font-bold tracking-wider">
+            <a href="#" className="hover:text-red-200 transition">Tin tức</a>
+            <a href="#" className="hover:text-red-200 transition">Tài liệu</a>
+            <a href="#" className="hover:text-red-200 transition">Hỗ trợ</a>
+          </div>
+        </div>
+      </div>
+
+      <header className="bg-white sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('home')}>
+            <ShieldCheck className="h-10 w-10 md:h-12 md:w-12 text-[#003366]" />
+            <div>
+              <h1 className="text-lg md:text-xl font-black uppercase tracking-wide text-[#003366] leading-tight">
+                Học viện Kỹ thuật và <br className="hidden md:block"/> Công nghệ An ninh
+              </h1>
+            </div>
+          </div>
+          
+          <div className="hidden md:flex items-center space-x-3">
+            <button onClick={() => setActiveTab('login')} className="text-sm font-bold text-[#003366] border border-[#003366] hover:bg-[#003366] hover:text-white px-5 py-2.5 rounded transition-colors flex items-center">
+              <LogIn className="w-4 h-4 mr-2" /> Đăng nhập Hệ thống
+            </button>
+          </div>
+
+          <div className="md:hidden">
+             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[#003366] p-2">
+               <Menu className="w-7 h-7" />
+             </button>
+          </div>
+        </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-slate-100 p-4 flex flex-col gap-3 shadow-inner">
+            <button onClick={() => {setActiveTab('login'); setMobileMenuOpen(false);}} className="w-full text-center text-sm font-bold text-[#003366] border border-[#003366] py-3 rounded">Đăng nhập Hệ thống</button>
+          </div>
+        )}
+      </header>
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
+        {activeTab === 'home' && <PublicHome onApplyClick={() => setActiveTab('login')} />}
+        {activeTab === 'login' && <LoginPage onAuth={handleAuth} onCancel={() => setActiveTab('home')} />}
+      </main>
+
+      <footer className="bg-[#002244] text-slate-300 py-10 text-sm mt-auto border-t-[6px] border-[#cc0000]">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <div className="flex items-center mb-4">
+               <ShieldCheck className="w-8 h-8 text-[#cc0000] mr-2" />
+               <h4 className="font-black text-white text-lg uppercase leading-tight">{ACADEMY_INFO.name}</h4>
+            </div>
+            <p className="mb-2 flex items-start"><MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-slate-400"/> Cơ sở 1: Hòa Lạc, Thạch Thất, TP. Hà Nội</p>
+            <p className="mb-2 flex items-start"><MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-slate-400"/> Cơ sở 2: Thuận Thành, tỉnh Bắc Ninh</p>
+          </div>
+          <div>
+            <h4 className="font-bold text-white text-base mb-4 uppercase border-b border-slate-700 pb-2">Liên hệ Tuyển sinh</h4>
+            <p className="mb-3 flex items-center"><Phone className="w-4 h-4 mr-2 text-slate-400"/> Điện thoại: <strong className="text-white ml-1">{ACADEMY_INFO.hotline}</strong></p>
+            <p className="mb-3 flex items-center"><Globe className="w-4 h-4 mr-2 text-slate-400"/> Email: tuyensinh@hvktcnan.bocongan.gov.vn</p>
+          </div>
+          <div>
+            <h4 className="font-bold text-white text-base mb-4 uppercase border-b border-slate-700 pb-2">Liên kết nhanh</h4>
+            <ul className="space-y-2">
+              <li><a href="#" className="hover:text-yellow-400 transition flex items-center"><ChevronRight className="w-4 h-4 mr-1 text-[#cc0000]"/> Đề án tuyển sinh 2026</a></li>
+              <li><a href="#" className="hover:text-yellow-400 transition flex items-center"><ChevronRight className="w-4 h-4 mr-1 text-[#cc0000]"/> Cổng thông tin BGDĐT</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ==========================================
+// COMPONENT ĐĂNG NHẬP / ĐĂNG KÝ
+// ==========================================
+function LoginPage({ onAuth, onCancel }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if(isLogin) {
+      onAuth(username, password, 'LOGIN');
+    } else {
+      const success = onAuth(username, password, 'REGISTER', { name });
+      if(success) setIsLogin(true);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row animate-fade-in mt-4">
+      <div className="md:w-5/12 bg-[#003366] text-white p-8 md:p-12 flex flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20"></div>
+        <div className="relative z-10">
+          <ShieldCheck className="w-16 h-16 text-[#cc0000] mb-8 bg-white rounded-xl p-2 shadow-lg" />
+          <h2 className="text-3xl font-black uppercase mb-6 leading-tight border-l-4 border-[#cc0000] pl-4">Cổng Xét tuyển<br/>Trực tuyến 2026</h2>
+          <p className="text-blue-100 text-sm mb-8 leading-relaxed">
+            Hệ thống Quản lý Dữ liệu thực tế. Mọi thao tác Thêm/Sửa/Xóa của Thí sinh và Quản trị viên đều được lưu trữ trực tiếp vào CSDL LocalStorage.
+          </p>
+          <div className="space-y-4">
+            <div className="bg-blue-900/50 p-4 rounded-lg border border-blue-800">
+              <h4 className="font-bold text-yellow-400 mb-1 flex items-center"><User className="w-4 h-4 mr-2"/>Tài khoản Thí sinh (Demo)</h4>
+              <p className="text-xs text-blue-200">CCCD: <code className="bg-blue-950 px-1 py-0.5 rounded text-white">001099001111</code> | Mật khẩu: <code className="bg-blue-950 px-1 py-0.5 rounded text-white">123</code></p>
+              <p className="text-xs text-blue-200 mt-1">Hoặc tự <strong className="text-white underline cursor-pointer" onClick={()=>setIsLogin(false)}>Đăng ký tài khoản mới</strong>.</p>
+            </div>
+            <div className="bg-red-900/30 p-4 rounded-lg border border-red-800/50">
+              <h4 className="font-bold text-red-300 mb-1 flex items-center"><Settings className="w-4 h-4 mr-2"/>Tài khoản Quản trị (3 Cấp độ)</h4>
+              <p className="text-xs text-blue-200">Trưởng ban: <code className="text-white">admin</code> / <code className="text-white">123</code> (Toàn quyền)</p>
+              <p className="text-xs text-blue-200">Chuyên viên: <code className="text-white">editor</code> / <code className="text-white">123</code> (Sửa/Xóa)</p>
+              <p className="text-xs text-blue-200">Thanh tra: <code className="text-white">viewer</code> / <code className="text-white">123</code> (Chỉ xem)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="md:w-7/12 p-8 md:p-14 relative bg-slate-50">
+        <button onClick={onCancel} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 bg-white p-2 rounded-full shadow-sm"><X className="w-5 h-5"/></button>
+        
+        <div className="flex border-b border-slate-300 mb-8">
+          <button onClick={() => setIsLogin(true)} className={`pb-3 text-lg font-black uppercase px-4 transition-all ${isLogin ? 'text-[#003366] border-b-4 border-[#cc0000]' : 'text-slate-400 hover:text-slate-600'}`}>Đăng nhập</button>
+          <button onClick={() => setIsLogin(false)} className={`pb-3 text-lg font-black uppercase px-4 transition-all ${!isLogin ? 'text-[#003366] border-b-4 border-[#cc0000]' : 'text-slate-400 hover:text-slate-600'}`}>Đăng ký</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {!isLogin && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Họ và tên thí sinh</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><User className="h-5 w-5 text-slate-400" /></div>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Nguyễn Văn A" className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition shadow-inner" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Tên đăng nhập / Số CCCD</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><User className="h-5 w-5 text-slate-400" /></div>
+              <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="Nhập CCCD hoặc ID quản trị" className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-300 rounded-lg text-sm font-bold text-[#003366] focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition shadow-inner" />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Mật khẩu</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-5 w-5 text-slate-400" /></div>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Nhập mật khẩu" className="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-300 rounded-lg text-sm font-bold text-[#003366] focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none transition shadow-inner" />
+            </div>
+          </div>
+
+          <button type="submit" className="w-full bg-[#cc0000] text-white font-black py-4 rounded-lg shadow-lg hover:bg-red-700 transition uppercase tracking-widest mt-6 hover:shadow-xl hover:-translate-y-0.5 transform">
+            {isLogin ? 'Đăng nhập Hệ thống' : 'Khởi tạo Tài khoản'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// COMPONENT TRANG CHỦ (PUBLIC)
+// ==========================================
+function PublicHome({ onApplyClick }) {
+  const [activeMethodTab, setActiveMethodTab] = useState(METHODS[0].id);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-fade-in">
+      <div className="lg:col-span-3 space-y-6">
+        <div className="text-xs text-slate-500 flex items-center gap-2 border-b border-slate-200 pb-3">
+          <Home className="w-3.5 h-3.5" /> <ChevronRight className="w-3 h-3"/> <span>Tuyển sinh Đại học</span> <ChevronRight className="w-3 h-3"/> <span className="font-bold text-[#cc0000]">Thông báo Tuyển sinh hệ Dân sự 2026</span>
+        </div>
+
+        <article className="bg-white p-6 md:p-10 rounded shadow-sm border border-slate-200">
+          <h1 className="text-2xl md:text-3xl font-black text-[#003366] leading-snug mb-4 uppercase">
+            Thông báo Tuyển sinh Đại học ngoài ngành Công an (Hệ dân sự) năm 2026
+          </h1>
+          
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-8 bg-slate-50 p-3 border border-slate-100 rounded">
+            <span className="flex items-center"><Calendar className="w-4 h-4 mr-1 text-slate-400"/> Ngày đăng: 10/02/2026</span>
+            <span className="flex items-center"><Eye className="w-4 h-4 mr-1 text-slate-400"/> Lượt xem: 15,240</span>
+            <span className="flex items-center"><FileText className="w-4 h-4 mr-1 text-slate-400"/> QĐ số: .../QĐ-T06-P3</span>
+          </div>
+
+          <div className="text-slate-700 leading-relaxed space-y-6 text-sm md:text-base">
+            <p className="font-medium text-justify">
+              Học viện Kỹ thuật và Công nghệ an ninh (Mã trường: <strong>KTH</strong>) trân trọng thông báo phương thức tuyển sinh đại học hệ chính quy (Hệ Dân sự) năm 2026. 
+              Đây là năm đầu tiên Học viện tuyển sinh hệ dân sự với <strong>100 chỉ tiêu</strong> cho 5 chuyên ngành mũi nhọn nhằm đáp ứng nhu cầu nhân lực an toàn không gian mạng và vi mạch bán dẫn quốc gia.
+            </p>
+
+            <h3 className="text-lg font-black text-[#003366] border-l-4 border-[#cc0000] pl-3 uppercase mt-10">
+              1. Chỉ tiêu & Mã ngành đào tạo
+            </h3>
+            
+            <div className="overflow-x-auto my-4">
+              <table className="w-full text-sm border-collapse border border-slate-300">
+                <thead>
+                  <tr className="bg-[#003366] text-white">
+                    <th className="border border-slate-300 p-3 text-center w-12 font-bold">STT</th>
+                    <th className="border border-slate-300 p-3 text-center font-bold">Mã ngành</th>
+                    <th className="border border-slate-300 p-3 text-left font-bold">Tên ngành / Chuyên ngành</th>
+                    <th className="border border-slate-300 p-3 text-center font-bold">Chỉ tiêu</th>
+                    <th className="border border-slate-300 p-3 text-left font-bold">Tổ hợp môn xét tuyển</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MAJORS.map((m, idx) => (
+                    <tr key={m.code} className="hover:bg-slate-50">
+                      <td className="border border-slate-300 p-3 text-center">{idx + 1}</td>
+                      <td className="border border-slate-300 p-3 font-bold text-[#cc0000] text-center">{m.code}</td>
+                      <td className="border border-slate-300 p-3 font-bold text-[#003366]">{m.name}</td>
+                      <td className="border border-slate-300 p-3 text-center font-bold">{m.quota}</td>
+                      <td className="border border-slate-300 p-3 text-slate-600 font-medium tracking-wide">{m.combos.join(', ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-lg font-black text-[#003366] border-l-4 border-[#cc0000] pl-3 uppercase mt-10">
+              2. Các phương thức tuyển sinh
+            </h3>
+
+            <div className="bg-white border border-slate-300 rounded shadow-sm mt-4">
+              <div className="flex flex-wrap border-b border-slate-300 bg-slate-50">
+                {METHODS.map(method => (
+                  <button 
+                    key={method.id}
+                    onClick={() => setActiveMethodTab(method.id)}
+                    className={`px-4 py-3 text-sm font-bold transition-colors flex-1 text-center border-r border-slate-300 last:border-0
+                      ${activeMethodTab === method.id ? 'bg-white text-[#cc0000] border-t-2 border-t-[#cc0000] -mt-[1px]' : 'text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    Phương thức {method.id}
+                  </button>
+                ))}
+              </div>
+              <div className="p-6 md:p-8 min-h-[150px]">
+                {METHODS.map(method => (
+                  <div key={method.id} className={`${activeMethodTab === method.id ? 'block' : 'hidden'} animate-fade-in`}>
+                    <h4 className="font-bold text-[#003366] mb-3 text-base">{method.name}</h4>
+                    <p className="text-slate-700 mb-4">{method.desc}</p>
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-900">
+                      <strong className="block mb-1 text-[#003366]">Hồ sơ yêu cầu tải lên:</strong>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Bản chụp CCCD hợp lệ.</li>
+                        <li>Bản chụp Học bạ THPT.</li>
+                        <li>Các minh chứng liên quan.</li>
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <h3 className="text-lg font-black text-[#003366] border-l-4 border-[#cc0000] pl-3 uppercase mt-10">
+              3. Đăng ký & Nhập học trực tuyến
+            </h3>
+            
+            <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-slate-200">
+              <button onClick={onApplyClick} className="bg-[#cc0000] hover:bg-red-700 text-white font-bold py-4 px-8 rounded shadow-md transition flex justify-center items-center gap-2 group uppercase">
+                <FileDigit className="w-5 h-5 group-hover:scale-110 transition-transform" /> Đăng nhập & Đăng ký XT
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-white border border-[#003366] shadow-sm">
+          <div className="bg-[#003366] text-white font-bold p-3 uppercase text-sm flex items-center">
+            <Clock className="w-5 h-5 mr-2 text-yellow-400" /> Kế hoạch tuyển sinh
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="border-l-2 border-[#003366] pl-3 relative">
+              <div className="absolute w-2.5 h-2.5 bg-[#003366] rounded-full -left-[5.5px] top-1"></div>
+              <div className="font-bold text-[#003366] text-sm">02/07/2026</div>
+              <div className="text-xs text-slate-600 mt-1">Bắt đầu nhận hồ sơ trực tuyến.</div>
+            </div>
+            <div className="border-l-2 border-[#cc0000] pl-3 relative">
+              <div className="absolute w-2.5 h-2.5 bg-[#cc0000] rounded-full -left-[5.5px] top-1 animate-pulse"></div>
+              <div className="font-bold text-[#cc0000] text-sm">17h00 - 14/07/2026</div>
+              <div className="text-xs text-slate-600 mt-1">Đóng cổng đăng ký nguyện vọng.</div>
+            </div>
+            <div className="border-l-2 border-slate-300 pl-3 relative">
+              <div className="absolute w-2.5 h-2.5 bg-slate-300 rounded-full -left-[5.5px] top-1"></div>
+              <div className="font-bold text-slate-600 text-sm">21/08/2026</div>
+              <div className="text-xs text-slate-600 mt-1">Công bố kết quả.</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 shadow-sm">
+          <div className="bg-slate-100 text-[#003366] font-bold p-3 uppercase text-sm border-b border-slate-200 flex items-center">
+            <Download className="w-5 h-5 mr-2" /> Biểu mẫu - Tài liệu
+          </div>
+          <div className="p-2">
+            <a href="#" className="flex items-start p-2 hover:bg-slate-50 transition border-b border-slate-100 group">
+              <FileText className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
+              <div>
+                <div className="text-sm font-bold text-[#003366] group-hover:text-[#cc0000] transition">Đề án tuyển sinh KTH 2026</div>
+                <div className="text-[11px] text-slate-500">Định dạng PDF</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// COMPONENT THÍ SINH (PORTAL)
+// ==========================================
+function CandidatePortal({ db, updateDb, user, setUser, addToast, writeLog, isSystemOpen }) {
+  const [activeMenu, setActiveMenu] = useState('wishes'); 
+  const [showForm, setShowForm] = useState(false);
+  const [newWish, setNewWish] = useState({ majorCode: MAJORS[0].code, methodId: 5, combo: MAJORS[0].combos[0], totalScore: '' });
+  
+  const myWishes = useMemo(() => {
+    return db.wishes.filter(w => w.candidateId === user.id).sort((a, b) => a.priority - b.priority);
+  }, [db.wishes, user.id]);
+
+  const isSystemLocked = !isSystemOpen || myWishes.some(w => ['ADMITTED', 'REJECTED', 'CANCELED'].includes(w.status));
+  const isAdmitted = myWishes.some(w => w.status === 'ADMITTED');
+
+  const updateUserInDb = (updatedUser) => {
+    setUser(updatedUser);
+    const newUsers = db.users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    updateDb({ ...db, users: newUsers });
+  };
+
+  const handlePayment = () => {
+    updateUserInDb({ ...user, isPaid: true });
+    writeLog(user.id, 'PAYMENT', `Thanh toán lệ phí cho ${myWishes.length} nguyện vọng.`);
+    addToast("Thanh toán thành công. Đã cập nhật vào cơ sở dữ liệu!", "success");
+  };
+
+  const handleAddWish = () => {
+    if (!user.isPaid && myWishes.length > 0) { addToast("Vui lòng thanh toán lệ phí trước khi thêm.", "error"); return; }
+    if (myWishes.length >= 15) { addToast("Tối đa 15 nguyện vọng.", "error"); return; }
+    if (!newWish.totalScore || newWish.totalScore <= 0 || newWish.totalScore > 30) { addToast("Điểm không hợp lệ.", "error"); return; }
+
+    const wishEntry = {
+      id: `W_${Date.now()}`, candidateId: user.id, majorCode: newWish.majorCode, methodId: newWish.methodId, combo: newWish.combo,
+      priority: myWishes.length + 1, totalScore: parseFloat(newWish.totalScore), bonusScore: 0, status: 'PENDING'
+    };
+    
+    updateDb({ ...db, wishes: [...db.wishes, wishEntry] });
+    writeLog(user.id, 'ADD_WISH', `Thêm NV: ${wishEntry.majorCode}`);
+    addToast("Lưu nguyện vọng vào CSDL thành công!", "success");
+    setShowForm(false);
+  };
+
+  const deleteWish = (wishId) => {
+    if (isSystemLocked) return;
+    const wishToDelete = myWishes.find(w => w.id === wishId);
+    let updatedWishes = db.wishes.filter(w => w.id !== wishId).map(w => {
+      if (w.candidateId === user.id && w.priority > wishToDelete.priority) return { ...w, priority: w.priority - 1 };
+      return w;
+    });
+    updateDb({ ...db, wishes: updatedWishes });
+    writeLog(user.id, 'DELETE_WISH', `Xóa NV ${wishToDelete.majorCode}`);
+    addToast("Đã xóa nguyện vọng khỏi CSDL.", "info");
+  };
+
+  const movePriority = (wishId, direction) => {
+    if (isSystemLocked) return;
+    let currentWishes = [...myWishes];
+    const idx = currentWishes.findIndex(w => w.id === wishId);
+    if (idx < 0) return;
+
+    if (direction === 'UP' && idx > 0) {
+      let temp = currentWishes[idx].priority; currentWishes[idx].priority = currentWishes[idx-1].priority; currentWishes[idx-1].priority = temp;
+    } else if (direction === 'DOWN' && idx < currentWishes.length - 1) {
+      let temp = currentWishes[idx].priority; currentWishes[idx].priority = currentWishes[idx+1].priority; currentWishes[idx+1].priority = temp;
+    } else return;
+
+    const updatedIds = currentWishes.map(w => w.id);
+    const newGlobalWishes = db.wishes.map(w => updatedIds.includes(w.id) ? currentWishes.find(cw => cw.id === w.id) : w);
+    
+    updateDb({ ...db, wishes: newGlobalWishes });
+    writeLog(user.id, 'REORDER_WISH', `Đổi thứ tự ưu tiên.`);
+  };
+
+  const MENU_ITEMS = [
+    { id: 'profile', icon: User, label: 'Thông tin cá nhân' },
+    { id: 'wishes', icon: FileCheck, label: 'Đăng ký Nguyện vọng' },
+    { id: 'payment', icon: CreditCard, label: 'Thanh toán lệ phí' },
+    { id: 'results', icon: CheckSquare, label: 'Kết quả xét tuyển' },
+  ];
+
+  return (
+    <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto w-full pt-6">
+      <aside className="w-full md:w-64 flex-shrink-0">
+        <div className="bg-white rounded shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+          <div className="p-4 bg-[#003366] text-white">
+            <h3 className="font-bold text-sm uppercase tracking-wider mb-1">Cổng Thí sinh</h3>
+            <p className="text-xs text-blue-200">CCCD: {user.cccd}</p>
+          </div>
+          <nav className="flex flex-col py-2">
+            {MENU_ITEMS.map(item => (
+              <button key={item.id} onClick={() => setActiveMenu(item.id)}
+                className={`flex items-center px-5 py-3 text-sm font-medium transition-colors text-left border-l-4
+                  ${activeMenu === item.id ? 'border-[#cc0000] bg-red-50 text-[#cc0000] font-bold' : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-[#003366]'}`}>
+                <item.icon className={`w-5 h-5 mr-3 ${activeMenu === item.id ? 'text-[#cc0000]' : 'text-slate-400'}`} />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      <div className="flex-1 min-w-0 pb-12">
+        {activeMenu === 'profile' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Thông tin Lý lịch & Liên hệ</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Họ và tên</label><input type="text" disabled value={user.name} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Số Thẻ CCCD</label><input type="text" disabled value={user.cccd} className="w-full p-2.5 border rounded bg-slate-50 text-slate-700 font-bold" /></div>
+              <div><label className="block text-xs font-bold text-slate-500 mb-1">Số điện thoại</label><input type="text" defaultValue={user.phone} onChange={e=>updateUserInDb({...user, phone: e.target.value})} className="w-full p-2.5 border rounded focus:border-[#003366] outline-none" /></div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+              <button onClick={()=>addToast('Đã lưu thông tin','success')} className="bg-[#003366] text-white font-bold px-6 py-2.5 rounded shadow-sm hover:bg-blue-900 transition flex items-center"><Save className="w-4 h-4 mr-2"/> Cập nhật CSDL</button>
+            </div>
+          </div>
+        )}
+
+        {activeMenu === 'wishes' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 border-b border-slate-200 pb-4 gap-4">
+              <h3 className="text-xl font-bold text-[#003366] uppercase">Đăng ký Nguyện vọng</h3>
+              <span className="text-xs bg-[#003366] text-white px-3 py-1.5 rounded font-bold self-start">Đã dùng: {myWishes.length} / 15 NV</span>
+            </div>
+
+            <div className="space-y-3 mb-8">
+              {myWishes.length === 0 && <div className="text-center p-8 bg-slate-50 text-slate-400 text-sm border-2 border-dashed rounded">Chưa có nguyện vọng. Bấm thêm mới bên dưới.</div>}
+              {myWishes.map((wish, index) => (
+                <div key={wish.id} className={`flex flex-col md:flex-row justify-between p-4 border shadow-sm rounded items-center ${wish.status === 'ADMITTED' ? 'bg-green-50 border-green-300' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center gap-4 w-full">
+                    <div className={`w-8 h-8 text-white rounded-full flex flex-shrink-0 items-center justify-center font-bold ${wish.status === 'ADMITTED' ? 'bg-green-600' : 'bg-[#003366]'}`}>{wish.priority}</div>
+                    <div>
+                      <div className="font-bold text-[#003366] text-base leading-tight">{MAJORS.find(m => m.code === wish.majorCode)?.name}</div>
+                      <div className="text-xs text-slate-600 mt-1.5 flex flex-wrap gap-2 items-center">
+                        <span className="bg-slate-100 px-2 py-0.5 rounded font-medium border">Mã: {wish.majorCode}</span>
+                        <span className="text-[#cc0000] font-bold">Điểm xét: {wish.totalScore}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-4 md:mt-0 w-full md:w-auto justify-end">
+                    <span className={`text-xs font-bold uppercase ${wish.status==='ADMITTED' ? 'text-green-600' : wish.status==='REJECTED' ? 'text-red-500' : 'text-slate-500'}`}>
+                      {wish.status === 'PENDING' ? 'Chờ duyệt' : wish.status === 'ADMITTED' ? 'Trúng tuyển' : wish.status === 'CANCELED' ? 'Bị hủy' : 'Trượt'}
+                    </span>
+                    {!isSystemLocked && (
+                      <div className="flex bg-slate-50 p-1 rounded border border-slate-200">
+                        <button disabled={index===0} onClick={() => movePriority(wish.id, 'UP')} className="p-1.5 text-slate-500 hover:text-[#003366] disabled:opacity-30"><ArrowUp className="w-4 h-4"/></button>
+                        <button disabled={index===myWishes.length-1} onClick={() => movePriority(wish.id, 'DOWN')} className="p-1.5 text-slate-500 hover:text-[#003366] disabled:opacity-30"><ArrowDown className="w-4 h-4"/></button>
+                        <div className="w-px bg-slate-200 mx-1"></div>
+                        <button onClick={() => deleteWish(wish.id)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-            `;
-            if (activeTab === 'portal' && currentUser && currentUser.role === 'CANDIDATE') {
-                html += renderCandidatePortal();
-            } else if (activeTab === 'admin' && currentUser && currentUser.role === 'ADMIN') {
-                html += renderAdminDashboard();
-            } else {
-                // public layout (home / login)
-                html += renderPublicLayout();
-            }
-            root.innerHTML = html;
-            attachGlobalEvents();
-        }
+              ))}
+            </div>
 
-        function renderPublicLayout() {
-            if (activeTab === 'login') return renderLoginPage();
-            return renderHomePage();
-        }
-
-        function renderHomePage() {
-            return `
-                <div class="min-h-screen flex flex-col">
-                    <!-- topbar -->
-                    <div class="bg-red-700 text-white text-xs py-2 hidden md:block">
-                        <div class="max-w-7xl mx-auto px-4 flex justify-between">
-                            <div class="flex gap-5"><i class="fas fa-phone-alt mr-1"></i> Hotline: ${ACADEMY_INFO.hotline} <i class="fas fa-globe ml-4 mr-1"></i> ${ACADEMY_INFO.website}</div>
-                            <div class="flex gap-5 uppercase font-semibold"><a href="#">Tin tức</a><a href="#">Tài liệu</a><a href="#">Hỗ trợ</a></div>
-                        </div>
+            {!isSystemLocked && (
+              showForm ? (
+                <div className="border border-blue-200 bg-blue-50/50 p-6 rounded shadow-inner">
+                  <h4 className="font-bold text-[#003366] text-sm mb-4 uppercase">Đăng ký NV Mới</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5 text-sm">
+                    <div className="md:col-span-2">
+                      <select className="p-2.5 border border-slate-300 rounded w-full bg-white font-medium" value={newWish.majorCode} onChange={e => {const m = MAJORS.find(x => x.code === e.target.value); setNewWish({...newWish, majorCode: m.code, combo: m.combos[0]})}}>
+                        {MAJORS.map(m => <option key={m.code} value={m.code}>{m.code} - {m.name}</option>)}
+                      </select>
                     </div>
-                    <!-- header -->
-                    <header class="bg-white shadow-md sticky top-0 z-40">
-                        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                            <div class="flex items-center gap-3 cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('navigate', {detail:{tab:'home'}}))">
-                                <i class="fas fa-shield-alt text-4xl text-[#003366]"></i>
-                                <div><h1 class="font-black text-lg md:text-xl text-[#003366] uppercase">Học viện Kỹ thuật và<br class="hidden md:block"/> Công nghệ An ninh</h1></div>
-                            </div>
-                            <button onclick="window.dispatchEvent(new CustomEvent('navigate', {detail:{tab:'login'}}))" class="hidden md:flex bg-white border border-[#003366] text-[#003366] font-bold px-5 py-2 rounded hover:bg-[#003366] hover:text-white transition"><i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập / Đăng ký</button>
-                        </div>
-                    </header>
-                    <main class="flex-1 max-w-7xl mx-auto px-4 py-8">${renderPublicHomeContent()}</main>
-                    <footer class="bg-[#002244] text-slate-300 py-8 border-t-4 border-red-700 text-sm">
-                        <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-6">
-                            <div><i class="fas fa-shield-alt text-red-600 text-2xl mb-2 block"></i><h4 class="font-bold text-white">${ACADEMY_INFO.name}</h4><p class="mt-2"><i class="fas fa-map-marker-alt mr-1"></i> Hòa Lạc, Hà Nội - Thuận Thành, Bắc Ninh</p></div>
-                            <div><h4 class="font-bold text-white uppercase">Liên hệ</h4><p><i class="fas fa-phone-alt mr-2"></i>${ACADEMY_INFO.hotline}</p><p><i class="fas fa-envelope mr-2"></i> tuyensinh@hvktcnan.edu.vn</p></div>
-                            <div><h4 class="font-bold text-white uppercase">Hỗ trợ</h4><a href="#" class="block hover:text-yellow-300">Đề án tuyển sinh 2026</a></div>
-                        </div>
-                    </footer>
+                    <div>
+                      <select className="p-2.5 border border-slate-300 rounded w-full bg-white" value={newWish.methodId} onChange={e => setNewWish({...newWish, methodId: Number(e.target.value)})}>
+                        {METHODS.map(m => <option key={m.id} value={m.id}>PT {m.id} - {m.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <input type="number" placeholder="Nhập điểm..." className="p-2.5 border border-slate-300 rounded w-full font-bold text-[#cc0000]" value={newWish.totalScore} onChange={e => setNewWish({...newWish, totalScore: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 border-t border-blue-200 pt-4 mt-2">
+                    <button onClick={() => setShowForm(false)} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-600 text-sm font-bold rounded hover:bg-slate-50">Hủy</button>
+                    <button onClick={handleAddWish} className="px-5 py-2.5 bg-[#003366] text-white text-sm font-bold rounded hover:bg-blue-900 shadow-sm flex items-center"><Check className="w-4 h-4 mr-2"/> Xác nhận lưu</button>
+                  </div>
                 </div>
-            `;
-        }
+              ) : (
+                <button onClick={() => setShowForm(true)} className="w-full border-2 border-dashed border-slate-300 text-[#003366] py-5 font-bold hover:border-[#003366] hover:bg-blue-50 transition flex justify-center items-center rounded bg-slate-50/50">
+                  <Plus className="w-5 h-5 mr-2" /> Thêm Nguyện vọng
+                </button>
+              )
+            )}
+          </div>
+        )}
 
-        function renderPublicHomeContent() {
-            return `
-                <div class="grid lg:grid-cols-4 gap-8 animate-fade-in">
-                    <div class="lg:col-span-3 bg-white p-6 rounded shadow">
-                        <h1 class="text-2xl font-black text-[#003366] uppercase">Thông báo Tuyển sinh Đại học (Hệ dân sự) năm 2026</h1>
-                        <div class="text-xs text-slate-500 my-3"><i class="far fa-calendar-alt mr-1"></i> 10/02/2026 &nbsp; <i class="far fa-eye"></i> 15.240 lượt xem</div>
-                        <p class="mb-4">Học viện Kỹ thuật và Công nghệ an ninh (Mã trường: <strong>KTH</strong>) thông báo tuyển sinh 100 chỉ tiêu hệ đại học chính quy với 5 ngành mũi nhọn.</p>
-                        <h3 class="font-bold text-[#003366] border-l-4 border-red-600 pl-3 my-4">Danh sách ngành & chỉ tiêu</h3>
-                        <div class="overflow-x-auto"><table class="w-full text-sm border"><thead class="bg-[#003366] text-white"><tr><th class="p-2 border">Mã</th><th class="p-2 border">Ngành</th><th class="p-2 border">Chỉ tiêu</th><th class="p-2 border">Tổ hợp</th></tr></thead><tbody>
-                            ${MAJORS.map(m => `<tr><td class="p-2 border font-bold text-red-700">${m.code}</td><td class="p-2 border">${m.name}</td><td class="p-2 border text-center">${m.quota}</td><td class="p-2 border">${m.combos.join(', ')}</td></tr>`).join('')}
-                        </tbody></table></div>
-                        <div class="mt-6 text-center"><button onclick="window.dispatchEvent(new CustomEvent('navigate', {detail:{tab:'login'}}))" class="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded shadow transition"><i class="fas fa-file-alt mr-2"></i> ĐĂNG KÝ XÉT TUYỂN NGAY</button></div>
-                    </div>
-                    <div class="bg-white p-4 rounded shadow border">
-                        <div class="font-bold text-[#003366] border-b pb-2"><i class="far fa-clock"></i> Kế hoạch TS</div>
-                        <ul class="mt-3 text-sm space-y-3"><li class="border-l-2 border-[#003366] pl-2">📌 02/07 - 14/07: Đăng ký NV</li><li class="border-l-2 border-red-600 pl-2">🎯 21/08: Công bố kết quả</li></ul>
-                        <div class="mt-5"><i class="fas fa-download"></i> Tài liệu: <a href="#" class="text-red-600 block text-xs">Đề án tuyển sinh 2026 (PDF)</a></div>
-                    </div>
+        {activeMenu === 'payment' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Thanh toán Lệ phí Xét tuyển</h3>
+            <div className="bg-slate-50 p-6 rounded border border-slate-200">
+              <div className="flex justify-between items-center text-lg mb-6">
+                <span className="font-bold text-slate-800">TỔNG TIỀN ({myWishes.length} NV):</span>
+                <span className="font-black text-[#cc0000]">{(myWishes.length * 50000).toLocaleString()} VNĐ</span>
+              </div>
+              {user.isPaid ? (
+                <div className="bg-green-100 text-green-800 p-4 rounded border border-green-200 text-center font-bold flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 mr-2" /> Đã Hoàn Tất Thanh Toán
                 </div>
-            `;
-        }
+              ) : (
+                <button onClick={handlePayment} disabled={myWishes.length===0} className="w-full bg-[#cc0000] text-white py-3 rounded font-bold shadow-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Xác nhận Đã Chuyển khoản
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-        function renderLoginPage() {
-            return `
-                <div class="min-h-[80vh] flex items-center justify-center py-8">
-                    <div class="max-w-4xl w-full bg-white rounded-xl shadow-xl overflow-hidden flex flex-col md:flex-row">
-                        <div class="md:w-5/12 bg-[#003366] text-white p-8">
-                            <i class="fas fa-shield-alt text-5xl text-red-500 mb-4"></i>
-                            <h2 class="text-2xl font-black uppercase">Cổng Xét tuyển 2026</h2>
-                            <p class="text-sm mt-2">Đăng nhập bằng CCCD đã đăng ký</p>
-                            <div class="mt-6 text-xs"><i class="fas fa-check-circle text-yellow-400"></i> Tối đa 15 NV<br/><i class="fas fa-credit-card mt-2"></i> Thanh toán trực tuyến</div>
-                        </div>
-                        <div class="md:w-7/12 p-8">
-                            <h3 class="text-2xl font-bold text-[#003366]">Đăng nhập</h3>
-                            <form id="loginForm" class="mt-6 space-y-4">
-                                <div><label class="block text-xs font-bold uppercase">Số CCCD</label><div class="relative"><i class="fas fa-user absolute left-3 top-3 text-slate-400"></i><input type="text" id="cccd" class="w-full border p-2 pl-9 rounded" placeholder="001099001111" value="001099001111"></div></div>
-                                <div><label class="block text-xs font-bold uppercase">Mật khẩu</label><div class="relative"><i class="fas fa-lock absolute left-3 top-3 text-slate-400"></i><input type="password" id="password" class="w-full border p-2 pl-9 rounded" placeholder="password" value="password"></div></div>
-                                <button type="submit" class="w-full bg-red-700 text-white font-bold py-2 rounded hover:bg-red-800"><i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập</button>
-                            </form>
-                            <div class="mt-5 text-xs bg-slate-100 p-3 rounded"><strong>Tài khoản demo:</strong><br/>📌 Thí sinh: CCCD 001099001111 / password<br/>👑 Admin: admin / admin</div>
-                        </div>
-                    </div>
+        {activeMenu === 'results' && (
+          <div className="bg-white rounded shadow-sm border border-slate-200 p-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-[#003366] mb-6 border-b border-slate-200 pb-3">Kết quả Xét tuyển</h3>
+            {isSystemOpen ? (
+              <div className="text-center p-12 bg-slate-50 rounded border border-slate-200">
+                <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <h4 className="font-bold text-slate-700 text-lg">Hệ thống đang mở đăng ký</h4>
+                <p className="text-sm text-slate-500 mt-2">Kết quả chính thức sẽ được công bố sau ngày 21/08/2026. Vui lòng quay lại sau.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className={`p-8 border rounded flex flex-col md:flex-row items-center justify-between gap-6 ${isAdmitted ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-200'}`}>
+                  <div>
+                    <h4 className={`font-black text-2xl mb-2 uppercase ${isAdmitted ? 'text-green-700' : 'text-red-700'}`}>
+                      {isAdmitted ? 'CHÚC MỪNG BẠN ĐÃ TRÚNG TUYỂN!' : 'KẾT QUẢ: KHÔNG TRÚNG TUYỂN'}
+                    </h4>
+                    <p className="text-base text-slate-700">
+                      {isAdmitted ? `Bạn đã xuất sắc trúng tuyển vào nguyện vọng số ${myWishes.find(w=>w.status==='ADMITTED')?.priority}.` : 'Điểm xét của bạn chưa đủ để trúng tuyển.'}
+                    </p>
+                  </div>
                 </div>
-            `;
-        }
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-        // Candidate Portal
-        function renderCandidatePortal() {
-            const myWishes = getMyWishes();
-            const isLocked = !isSystemOpen || myWishes.some(w => ['ADMITTED','REJECTED'].includes(w.status));
-            const canModify = !isLocked;
-            const paidStatus = currentUser.isPaid ? "Đã thanh toán" : "Chưa thanh toán";
-            return `
-                <div class="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto py-6 px-4">
-                    <aside class="md:w-72 bg-white rounded shadow p-4 h-fit sticky top-24">
-                        <div class="bg-[#003366] text-white -mx-4 -mt-4 p-4 rounded-t"><i class="fas fa-user-graduate mr-2"></i> ${escapeHtml(currentUser.name)}<div class="text-xs">Mã TS: ${currentUser.id}</div></div>
-                        <nav class="mt-4 space-y-1">
-                            <button data-nav="profile" class="nav-btn w-full text-left p-2 rounded hover:bg-slate-100 flex items-center gap-2"><i class="fas fa-user-circle w-5"></i> Thông tin</button>
-                            <button data-nav="wishes" class="nav-btn w-full text-left p-2 rounded hover:bg-slate-100 flex items-center gap-2"><i class="fas fa-list-ul w-5"></i> Nguyện vọng</button>
-                            <button data-nav="payment" class="nav-btn w-full text-left p-2 rounded hover:bg-slate-100 flex items-center gap-2"><i class="fas fa-credit-card w-5"></i> Thanh toán</button>
-                            <button data-nav="results" class="nav-btn w-full text-left p-2 rounded hover:bg-slate-100 flex items-center gap-2"><i class="fas fa-chart-line w-5"></i> Kết quả</button>
-                        </nav>
-                    </aside>
-                    <div class="flex-1" id="portalContent">
-                        <!-- default hiển thị nguyện vọng -->
-                    </div>
-                </div>
-            `;
-        }
+// ==========================================
+// 6. QUẢN TRỊ VIÊN (ADMIN DASHBOARD WITH RBAC)
+// ==========================================
+function AdminDashboard({ db, updateDb, adminUser, addToast, writeLog }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const candidates = db.users.filter(u => u.role === 'CANDIDATE');
 
-        function renderCandidateSubView(view) {
-            const myWishes = getMyWishes();
-            const isLocked = !isSystemOpen || myWishes.some(w => ['ADMITTED','REJECTED'].includes(w.status));
-            const canModify = !isLocked;
-            if (view === 'profile') {
-                return `<div class="bg-white p-6 rounded shadow"><h3 class="text-xl font-bold text-[#003366]">Thông tin cá nhân</h3>
-                <div class="grid md:grid-cols-2 gap-4 mt-4"><div><label class="text-xs font-bold">Họ tên</label><input value="${escapeHtml(currentUser.name)}" class="w-full border rounded p-2 bg-slate-50" disabled/></div>
-                <div><label class="text-xs font-bold">CCCD</label><input value="${currentUser.cccd}" disabled class="w-full border rounded p-2 bg-slate-50"/></div>
-                <div><label class="text-xs font-bold">Điện thoại</label><input id="phone" value="${currentUser.phone || ''}" class="w-full border rounded p-2"/></div>
-                <div><label class="text-xs font-bold">Email</label><input id="email" value="${currentUser.email || ''}" class="w-full border rounded p-2"/></div>
-                </div><div class="mt-4 flex justify-end"><button id="updateProfileBtn" class="bg-[#003366] text-white px-5 py-2 rounded">Cập nhật</button></div></div>`;
-            }
-            if (view === 'payment') {
-                return `<div class="bg-white p-6 rounded shadow"><h3 class="text-xl font-bold text-[#003366]">Thanh toán lệ phí xét tuyển</h3>
-                <p class="mt-2">Phí đăng ký: 30.000đ / nguyện vọng. Tổng số NV hiện tại: ${myWishes.length}</p>
-                <p class="font-bold mt-2">Trạng thái: <span class="${currentUser.isPaid ? 'text-green-600' : 'text-red-500'}">${paidStatus}</span></p>
-                ${!currentUser.isPaid ? `<button id="payNowBtn" class="mt-4 bg-green-700 text-white px-6 py-2 rounded shadow">Thanh toán ngay (demo)</button>` : '<div class="mt-4 bg-green-100 p-3 rounded">✅ Bạn đã hoàn tất thanh toán.</div>'}
-                </div>`;
-            }
-            if (view === 'results') {
-                const admittedWish = myWishes.find(w => w.status === 'ADMITTED');
-                return `<div class="bg-white p-6 rounded shadow"><h3 class="text-xl font-bold">Kết quả xét tuyển</h3>
-                ${myWishes.length === 0 ? '<p>Chưa có nguyện vọng nào.</p>' : `<ul class="mt-4 space-y-2">${myWishes.map(w => `<li class="border p-3 rounded flex justify-between"><span><b>${MAJORS.find(m=>m.code===w.majorCode)?.name || w.majorCode}</b> - NV${w.priority}</span><span class="font-bold ${w.status === 'ADMITTED' ? 'text-green-600' : w.status === 'REJECTED' ? 'text-red-600' : 'text-yellow-600'}">${w.status === 'PENDING' ? 'Đang xét' : w.status === 'ADMITTED' ? 'TRÚNG TUYỂN' : 'KHÔNG TRÚNG'}</span></li>`).join('')}</ul>`}
-                ${admittedWish ? `<div class="mt-4 p-4 bg-green-100 border border-green-300 rounded"><i class="fas fa-check-circle text-green-600"></i> Chúc mừng! Bạn đã trúng tuyển nguyện vọng ${admittedWish.priority}. Vui lòng xác nhận nhập học.</div>` : ''}</div>`;
-            }
-            // wishes view (mặc định)
-            return `<div class="bg-white p-6 rounded shadow">
-                <div class="flex justify-between items-center"><h3 class="text-xl font-bold text-[#003366]">Danh sách nguyện vọng (${myWishes.length}/15)</h3>
-                ${canModify && isSystemOpen ? `<button id="showAddWishBtn" class="bg-red-600 text-white px-4 py-2 rounded text-sm"><i class="fas fa-plus"></i> Thêm NV</button>` : ''}</div>
-                ${myWishes.length === 0 ? '<div class="text-center p-6 text-slate-400">Chưa có nguyện vọng. Bấm thêm mới.</div>' : `
-                <div class="overflow-x-auto mt-4"><table class="w-full text-sm border"><thead class="bg-slate-100"><tr><th>#</th><th>Ngành</th><th>PT xét tuyển</th><th>Tổ hợp</th><th>Điểm</th><th>Trạng thái</th><th class="w-24">Thao tác</th></tr></thead><tbody>
-                ${myWishes.map(w => {
-                    const major = MAJORS.find(m => m.code === w.majorCode);
-                    const method = METHODS.find(m => m.id === w.methodId);
-                    return `<tr><td class="p-2 border">${w.priority}</td>
-                    <td class="p-2 border">${major?.name || w.majorCode}</td>
-                    <td class="p-2 border">${method?.name.slice(0,20) || 'PT'+w.methodId}</td>
-                    <td class="p-2 border">${w.combo}</td>
-                    <td class="p-2 border">${w.totalScore}</td>
-                    <td class="p-2 border"><span class="px-2 py-0.5 rounded text-xs ${w.status==='PENDING'?'bg-yellow-100 text-yellow-800':w.status==='ADMITTED'?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${w.status === 'PENDING' ? 'Chờ duyệt' : w.status}</span></td>
-                    <td class="p-2 border">${canModify && w.status === 'PENDING' ? `<button class="deleteWishBtn text-red-500 hover:text-red-700 mx-1" data-id="${w.id}"><i class="fas fa-trash-alt"></i></button>
-                    <button class="moveUpBtn ${w.priority===1?'opacity-30 pointer-events-none':''}" data-id="${w.id}"><i class="fas fa-arrow-up"></i></button>
-                    <button class="moveDownBtn ${w.priority===myWishes.length?'opacity-30 pointer-events-none':''}" data-id="${w.id}"><i class="fas fa-arrow-down"></i></button>` : '—'}</td></tr>`;
-                }).join('')}
-                </tbody></table></div>`}
-                ${!canModify && !isSystemOpen ? '<p class="mt-4 text-red-500 text-sm"><i class="fas fa-lock"></i> Hệ thống đã khóa đăng ký.</p>' : ''}
-                <div id="addWishForm" class="mt-6 hidden border-t pt-4"></div>
-            </div>`;
-        }
+  // RBAC LOGIC
+  const canEdit = adminUser.role === 'SUPER_ADMIN' || adminUser.role === 'EDITOR';
+  const canRunAlgorithm = adminUser.role === 'SUPER_ADMIN';
 
-        // Admin Dashboard
-        function renderAdminDashboard() {
-            const allWishes = wishes;
-            const allCandidates = candidates;
-            return `
-                <div class="max-w-7xl mx-auto px-4 py-6">
-                    <div class="flex justify-between items-center"><h2 class="text-2xl font-black text-[#003366]"><i class="fas fa-gavel"></i> Bảng điều khiển quản trị</h2><button id="adminLogoutBtn" class="bg-red-600 text-white px-4 py-2 rounded"><i class="fas fa-sign-out-alt"></i> Thoát</button></div>
-                    <div class="grid md:grid-cols-3 gap-4 mt-6">
-                        <div class="bg-white p-4 rounded shadow"><i class="fas fa-users text-2xl"></i> <span class="font-bold text-xl">${allCandidates.length}</span> Thí sinh</div>
-                        <div class="bg-white p-4 rounded shadow"><i class="fas fa-file-signature"></i> <span class="font-bold text-xl">${allWishes.length}</span> Nguyện vọng</div>
-                        <div class="bg-white p-4 rounded shadow"><i class="fas fa-clock"></i> Trạng thái hệ thống: ${isSystemOpen ? 'Đang mở' : 'Đã đóng'}</div>
-                    </div>
-                    <div class="mt-8 bg-white p-4 rounded shadow">
-                        <h3 class="font-bold text-lg">Quản lý nguyện vọng & phê duyệt</h3>
-                        <div class="overflow-x-auto mt-3"><table class="w-full text-sm border"><thead class="bg-slate-100"><tr><th>Thí sinh</th><th>Ngành</th><th>PT</th><th>Điểm</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody>
-                        ${allWishes.map(w => {
-                            const cand = candidates.find(c => c.id === w.candidateId);
-                            return `<tr><td class="p-2 border">${cand?.name || w.candidateId}</td>
-                            <td class="p-2 border">${MAJORS.find(m=>m.code===w.majorCode)?.name || w.majorCode}</td>
-                            <td class="p-2 border">PT${w.methodId}</td>
-                            <td class="p-2 border">${w.totalScore}</td>
-                            <td class="p-2 border">${w.status}</td>
-                            <td class="p-2 border"><select data-wish="${w.id}" class="statusSelect border rounded p-1"><option ${w.status==='PENDING'?'selected':''}>PENDING</option><option ${w.status==='ADMITTED'?'selected':''}>ADMITTED</option><option ${w.status==='REJECTED'?'selected':''}>REJECTED</option></select></td></tr>`;
-                        }).join('')}
-                        </tbody></table></div>
-                    </div>
-                    <div class="mt-6 bg-white p-4 rounded shadow"><h3 class="font-bold">Nhật ký hệ thống</h3><div class="text-xs h-40 overflow-y-auto">${auditLogs.map(log => `<div class="border-b py-1">[${new Date(log.time).toLocaleString()}] ${log.action}: ${log.detail}</div>`).join('')}</div></div>
-                </div>
-            `;
-        }
+  const runAdmissionAlgorithm = () => {
+    if (!canRunAlgorithm) {
+      addToast("Bạn không có quyền chạy chức năng này!", "error"); return;
+    }
+    setIsProcessing(true);
+    addToast("Bắt đầu xử lý thuật toán xét tuyển (Ghi vào CSDL)...", "info");
+    
+    setTimeout(() => {
+      let newWishes = JSON.parse(JSON.stringify(db.wishes));
+      newWishes.forEach(w => w.status = 'PENDING');
 
-        function attachGlobalEvents() {
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const nav = btn.getAttribute('data-nav');
-                    if (nav && activeTab === 'portal') {
-                        const container = document.getElementById('portalContent');
-                        if (container) container.innerHTML = renderCandidateSubView(nav);
-                        attachCandidateDynamicEvents();
-                    }
-                });
-            });
-            const portalContainer = document.getElementById('portalContent');
-            if (portalContainer && activeTab === 'portal') {
-                portalContainer.innerHTML = renderCandidateSubView('wishes');
-                attachCandidateDynamicEvents();
-            }
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); const cccd = document.getElementById('cccd').value; const pwd = document.getElementById('password').value; handleLogin(cccd, pwd); });
-            const adminLogout = document.getElementById('adminLogoutBtn');
-            if (adminLogout) adminLogout.addEventListener('click', logout);
-            document.querySelectorAll('.statusSelect').forEach(sel => {
-                sel.addEventListener('change', (e) => {
-                    const wishId = sel.getAttribute('data-wish');
-                    adminUpdateWishStatus(wishId, sel.value);
-                });
-            });
-            const updateProfileBtn = document.getElementById('updateProfileBtn');
-            if (updateProfileBtn) updateProfileBtn.addEventListener('click', () => {
-                const newPhone = document.getElementById('phone')?.value || '';
-                const newEmail = document.getElementById('email')?.value || '';
-                const updated = candidates.map(c => c.id === currentUser.id ? { ...c, phone: newPhone, email: newEmail } : c);
-                updateCandidates(updated);
-                currentUser = { ...currentUser, phone: newPhone, email: newEmail };
-                addToast("Cập nhật thông tin thành công", "success");
-            });
-            const payBtn = document.getElementById('payNowBtn');
-            if (payBtn) payBtn.addEventListener('click', handlePayment);
-            const showAddBtn = document.getElementById('showAddWishBtn');
-            if (showAddBtn) showAddBtn.addEventListener('click', () => {
-                const container = document.getElementById('addWishForm');
-                if (container) {
-                    container.innerHTML = `
-                        <h4 class="font-bold">Thêm nguyện vọng mới</h4>
-                        <div class="grid grid-cols-2 gap-3 mt-2"><select id="newMajor" class="border p-2 rounded">${MAJORS.map(m=>`<option value="${m.code}">${m.name}</option>`).join('')}</select>
-                        <select id="newMethod" class="border p-2 rounded">${METHODS.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select>
-                        <select id="newCombo" class="border p-2 rounded"><option>A00</option><option>A01</option><option>D01</option><option>X06</option></select>
-                        <input id="newScore" type="number" step="0.1" placeholder="Điểm (0-30)" class="border p-2 rounded">
-                        </div><button id="confirmAddWish" class="mt-3 bg-green-700 text-white px-4 py-1 rounded">Lưu nguyện vọng</button>`;
-                    document.getElementById('confirmAddWish')?.addEventListener('click', () => {
-                        const major = document.getElementById('newMajor').value;
-                        const method = document.getElementById('newMethod').value;
-                        const combo = document.getElementById('newCombo').value;
-                        const score = parseFloat(document.getElementById('newScore').value);
-                        if (addWish(major, method, combo, score)) {
-                            document.getElementById('addWishForm').innerHTML = '';
-                            document.getElementById('addWishForm').classList.add('hidden');
-                            renderApp();
-                        }
-                    });
-                    container.classList.remove('hidden');
-                }
-            });
-            document.querySelectorAll('.deleteWishBtn').forEach(btn => btn.addEventListener('click', (e) => { const id = btn.getAttribute('data-id'); if(confirm('Xóa nguyện vọng?')) deleteWish(id); }));
-            document.querySelectorAll('.moveUpBtn').forEach(btn => btn.addEventListener('click', (e) => { const id = btn.getAttribute('data-id'); movePriority(id, 'UP'); }));
-            document.querySelectorAll('.moveDownBtn').forEach(btn => btn.addEventListener('click', (e) => { const id = btn.getAttribute('data-id'); movePriority(id, 'DOWN'); }));
-        }
+      MAJORS.forEach(major => {
+        let majorWishes = newWishes.filter(w => w.majorCode === major.code && w.status === 'PENDING');
+        majorWishes.sort((a, b) => b.totalScore - a.totalScore || a.bonusScore - b.bonusScore || a.priority - b.priority);
+        const admittedWishes = majorWishes.slice(0, major.quota); 
+        admittedWishes.forEach(aw => {
+          newWishes.find(w => w.id === aw.id).status = 'ADMITTED';
+          newWishes.forEach(w => { 
+            if (w.candidateId === aw.candidateId && w.priority > aw.priority && w.status === 'PENDING') w.status = 'CANCELED';
+          });
+        });
+      });
 
-        function attachCandidateDynamicEvents() { setTimeout(attachGlobalEvents, 20); }
-        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+      newWishes.forEach(w => { if (w.status === 'PENDING') w.status = 'REJECTED'; });
+      
+      updateDb({ ...db, wishes: newWishes });
+      writeLog(adminUser.id, 'RUN_ALGORITHM', 'Hệ thống đã chốt điểm và xét tuyển thành công.');
+      setIsProcessing(false);
+      addToast("Chốt kết quả Xét tuyển thành công!", "success");
+    }, 2000);
+  };
 
-        window.addEventListener('navigate', (e) => { activeTab = e.detail.tab; renderApp(); });
-        renderApp();
-    </script>
-</body>
-</html>
+  const handleAdminDeleteWish = (wishId) => {
+    if (!canEdit) { addToast("Quyền của bạn chỉ được xem!", "error"); return; }
+    if(window.confirm("Xóa dữ liệu này khỏi hệ thống?")) {
+      const newWishes = db.wishes.filter(w => w.id !== wishId);
+      updateDb({ ...db, wishes: newWishes });
+      writeLog(adminUser.id, 'ADMIN_DELETE_WISH', `Xóa NV ID: ${wishId}`);
+      addToast("Xóa dữ liệu thành công!", "success");
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pt-6 px-4 pb-12">
+      <div className="bg-white p-6 border border-slate-200 flex flex-col md:flex-row justify-between items-center shadow-sm rounded gap-4">
+        <div>
+          <h2 className="text-xl font-black text-[#003366] uppercase">Phần mềm Quản lý Tuyển sinh</h2>
+          <p className="text-sm text-slate-500 font-medium flex items-center mt-1">
+            Vai trò hiện tại: <strong className={`ml-1 ${adminUser.role==='SUPER_ADMIN'?'text-[#cc0000]':adminUser.role==='EDITOR'?'text-blue-600':'text-slate-600'}`}>{adminUser.role}</strong>
+          </p>
+        </div>
+        <button onClick={runAdmissionAlgorithm} disabled={isProcessing || !canRunAlgorithm} 
+          className={`font-bold px-6 py-3 rounded text-white flex items-center shadow transition-colors
+            ${isProcessing || !canRunAlgorithm ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#cc0000] hover:bg-red-800'}`}>
+          {isProcessing ? 'Đang ghi vào CSDL...' : <><Settings className="w-5 h-5 mr-2" /> Chạy Xét tuyển tự động</>}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[ { l: 'Tổng Chỉ tiêu', v: 10 }, { l: 'TS Đăng ký', v: candidates.length }, { l: 'Tổng NV', v: db.wishes.length }, { l: 'Trúng tuyển', v: db.wishes.filter(w=>w.status==='ADMITTED').length }].map((k, i) => (
+          <div key={i} className="bg-white p-6 border text-center shadow-sm rounded">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{k.l}</p>
+            <h4 className="text-3xl font-black text-[#003366] mt-2">{k.v}</h4>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white border shadow-sm rounded overflow-hidden flex flex-col h-[500px]">
+          <div className="p-4 border-b bg-slate-50 font-bold text-[#003366] uppercase text-sm flex items-center justify-between">
+            <span className="flex items-center"><LayoutDashboard className="w-4 h-4 mr-2" /> Database Nguyện vọng (Realtime)</span>
+          </div>
+          <div className="overflow-auto flex-1 p-2">
+            <table className="w-full text-left text-sm">
+              <thead className="text-slate-400 border-b border-slate-200">
+                <tr><th className="p-3">Thí sinh</th><th className="p-3">Mã Ngành</th><th className="p-3">Điểm</th><th className="p-3">Trạng thái</th><th className="p-3 text-center">Thao tác</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {db.wishes.sort((a,b) => b.totalScore - a.totalScore).map(w => {
+                  const c = candidates.find(can => can.id === w.candidateId);
+                  return (
+                    <tr key={w.id} className="hover:bg-slate-50">
+                      <td className="p-3 font-bold text-slate-700">{c?.name} <span className="block text-xs font-normal text-slate-400">{c?.cccd}</span></td>
+                      <td className="p-3 font-bold text-[#cc0000]">{w.majorCode} <span className="text-xs font-normal text-slate-500">(NV{w.priority})</span></td>
+                      <td className="p-3 font-mono font-bold">{w.totalScore}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${w.status === 'ADMITTED' ? 'bg-green-100 text-green-700' : w.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{w.status}</span>
+                      </td>
+                      <td className="p-3 text-center">
+                        {canEdit ? (
+                          <div className="flex justify-center gap-2 text-slate-400">
+                            <button onClick={()=>handleAdminDeleteWish(w.id)} className="hover:text-red-600" title="Xóa"><Trash className="w-4 h-4"/></button>
+                          </div>
+                        ) : <span className="text-xs text-slate-300">Read-only</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="lg:col-span-1 bg-slate-900 rounded shadow-sm overflow-hidden flex flex-col h-[500px]">
+          <div className="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center text-white">
+            <h3 className="font-bold flex items-center text-sm uppercase text-slate-300">System Audit Logs</h3>
+          </div>
+          <div className="overflow-y-auto flex-1 p-4 space-y-4 font-mono text-[11px] leading-relaxed">
+            {db.logs.map(log => (
+              <div key={log.id} className="border-l border-blue-500/50 pl-3 relative">
+                <div className="absolute w-2 h-2 rounded-full bg-blue-500 -left-[4.5px] top-1"></div>
+                <div className="text-slate-400 mb-1">{new Date(log.time).toLocaleTimeString('vi-VN')} <span className="text-slate-600">|</span> <span className="text-yellow-400 font-bold">{log.actor}</span></div>
+                <div className="text-green-400 font-bold mb-1">[{log.action}]</div>
+                <div className="text-slate-300">{log.detail}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
